@@ -7,15 +7,17 @@
 | Retrofit | Describe Moodle requests through Kotlin interfaces and execute them. |
 | kotlinx.serialization JSON | Convert JSON responses into Kotlin data classes. |
 | Retrofit kotlinx.serialization converter | Connect Retrofit response conversion to Kotlin serialization. |
+| jsoup | Parse course HTML locally into readable terminal text without executing scripts or fetching resources. |
 | Kotlin Test with JUnit | Support automated tests. |
 
 Retrofit brings in OkHttp as a transitive dependency. We do not need Ktor or a
 second HTTP client. Kotlin serialization also requires its Kotlin compiler plugin;
 configure that plugin alongside the JSON runtime library.
 
-Dependency and toolchain versions are defined in `build.gradle.kts` and
-`gradle/wrapper/gradle-wrapper.properties`. Keep version numbers in those build
-files rather than duplicating them here.
+Dependency and plugin versions are defined in `gradle/libs.versions.toml`.
+Project and Java toolchain versions are in `gradle.properties`; the Gradle version
+is in `gradle/wrapper/gradle-wrapper.properties`. Keep exact versions in those
+configuration files rather than duplicating them here.
 
 ## Functionality provided without additional libraries
 

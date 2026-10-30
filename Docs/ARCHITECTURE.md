@@ -8,56 +8,38 @@ Infrastructure implements it using Retrofit. The CLI handles input and presentat
 
 ```mermaid
 classDiagram
-    class MoodleCli {
-        +run(args: Array~String~) Int
-    }
-    class MoodleService {
-        +getCourses() List~Course~
-        +getUpcoming(days: Int) List~Assignment~
-    }
-    class MoodleRepository {
-        <<interface>>
-        +getCourses() List~Course~
-        +getAssignments() List~Assignment~
-    }
-    class RetrofitMoodleRepository
-    class MoodleApi {
-        <<interface>>
-    }
-    class Course {
-        <<data class>>
-        +id: Long
-        +name: String
-    }
-    class Assignment {
-        <<data class>>
-        +id: Long
-        +courseId: Long
-        +name: String
-        +dueDate: Instant?
-    }
-    class Clock {
-        <<JDK abstraction>>
-    }
-
-    MoodleCli --> MoodleService
-    MoodleService --> MoodleRepository
-    MoodleService --> Clock
-    RetrofitMoodleRepository ..|> MoodleRepository
-    RetrofitMoodleRepository --> MoodleApi
-    MoodleRepository ..> Course
-    MoodleRepository ..> Assignment
+    MoodleCli --> CourseCommands
+    CourseCommands --> CourseService
+    CourseService --> AccessService
+    CourseService --> CourseRepository
+    CourseService --> CourseFiles
+    RetrofitCourseRepository ..|> CourseRepository
+    LocalCourseFiles ..|> CourseFiles
+    LocalCourseFiles --> MoodleFileClient
+    RetrofitCourseRepository --> MoodleApi
+    CourseRepository ..> Course
+    CourseRepository ..> CourseSection
+    CourseSection *-- CourseModule
+    CourseModule *-- CourseFile
 ```
 
-The diagram shows application-level operations, not finalized Moodle endpoints.
-`MoodleApi` will use Retrofit annotations and transport-specific response DTOs.
-`RetrofitMoodleRepository` maps those DTOs into domain models and translates API
-failures into application errors without exposing HTTP response types to callers.
-Retrofit creates the implementation of `MoodleApi`.
+`CourseService` handles authenticated course operations and selection of activities
+and files. `AccessService.withSession` supplies the verified user ID and in-memory
+token, and removes credentials when an operation reports expired authentication.
+`CourseRepository` and `CourseFiles` are replaceable boundaries. Application services
+do not depend on Retrofit, response DTOs, filesystem APIs, or terminal output.
+The separate `MoodleService` and `MoodleRepository` retain assignment filtering logic
+for the assignment integration.
 
-`Main.kt` is the composition root: it loads configuration, builds Retrofit, creates
-the repository and service, then starts the CLI. Configuration and credentials
-belong at the integration boundary; services do not load files or look up tokens.
+`RetrofitCourseRepository` maps course DTOs into domain models. `MoodleFileClient`
+restricts credential-bearing requests to the configured Moodle file endpoint and
+sends the token in the POST body without following redirects. `LocalCourseFiles`
+handles bounded streaming, safe filenames, exclusive file creation, and cleanup
+of failed downloads. `TerminalText` parses HTML locally with jsoup and removes
+terminal controls; it does not fetch embedded resources.
+
+`Main.kt` is the composition root: it loads configuration, builds adapters and
+services, and connects the CLI dispatchers. Secrets stay in the running process.
 Keep secrets out of generated `toString()` output, including configuration data classes.
 
 ## Constructor injection

@@ -1,5 +1,6 @@
 package moodle.infrastructure.api.interfaces
 
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import moodle.infrastructure.api.dtos.PublicConfigEnvelopeDto
 import moodle.infrastructure.api.dtos.PublicConfigRequestDto
@@ -20,4 +21,22 @@ internal interface MoodleApi {
         @Field("wsfunction") function: String = "core_webservice_get_site_info",
         @Field("moodlewsrestformat") format: String = "json"
     ): Call<JsonObject>
+
+    @FormUrlEncoded
+    @POST("webservice/rest/server.php")
+    fun getCourses(
+        @Field("wstoken") token: String,
+        @Field("userid") userId: Long,
+        @Field("wsfunction") function: String = "core_enrol_get_users_courses",
+        @Field("moodlewsrestformat") format: String = "json"
+    ): Call<JsonElement>
+
+    @FormUrlEncoded
+    @POST("webservice/rest/server.php")
+    fun getCourseContents(
+        @Field("wstoken") token: String,
+        @Field("courseid") courseId: Long,
+        @Field("wsfunction") function: String = "core_course_get_contents",
+        @Field("moodlewsrestformat") format: String = "json"
+    ): Call<JsonElement>
 }

@@ -12,6 +12,7 @@ repositories {
 }
 
 dependencies {
+    implementation(libs.jsoup)
     implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.kotlinx.serialization.json)

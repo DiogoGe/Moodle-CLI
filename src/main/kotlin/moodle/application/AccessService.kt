@@ -8,6 +8,7 @@ import moodle.domain.interfaces.MoodleAccess
 
 class AccessService(private val access: MoodleAccess, private val siteUrl: String) {
     private var token: AccessToken? = null
+    private var userId: Long? = null
 
     fun getPublicStatus(): PublicStatus = access.getPublicStatus()
 
@@ -17,6 +18,7 @@ class AccessService(private val access: MoodleAccess, private val siteUrl: Strin
             throw MoodleException.Authentication("Moodle returned a different site. Login was not accepted.")
         }
         token = candidate
+        userId = info.userId
         return info
     }
 
@@ -29,7 +31,19 @@ class AccessService(private val access: MoodleAccess, private val siteUrl: Strin
         }
     }
 
+    fun <T> withSession(action: (AccessToken, Long) -> T): T {
+        val currentToken = token ?: throw MoodleException.Authentication("Sign in first using login.")
+        val currentUser = userId ?: throw MoodleException.Authentication("Sign in first using login.")
+        try {
+            return action(currentToken, currentUser)
+        } catch (error: MoodleException.Authentication) {
+            logout()
+            throw error
+        }
+    }
+
     fun logout() {
         token = null
+        userId = null
     }
 }

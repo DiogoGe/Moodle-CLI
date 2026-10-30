@@ -1,14 +1,11 @@
 package moodle.application
 
 import moodle.domain.entities.Assignment
-import moodle.domain.entities.Course
 import moodle.domain.interfaces.MoodleRepository
 import java.time.Clock
 import java.time.temporal.ChronoUnit
 
 class MoodleService(private val repository: MoodleRepository, private val clock: Clock) {
-    fun getCourses(): List<Course> = repository.getCourses()
-
     fun getAssignments(courseId: Long? = null): List<Assignment> =
         repository.getAssignments().filter { courseId == null || it.courseId == courseId }
 

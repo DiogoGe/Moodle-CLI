@@ -16,7 +16,8 @@ class AccessCommands(
     private val browserLogin: BrowserLoginService,
     private val loginBrowser: LoginBrowser,
     private val output: (String) -> Unit = ::println,
-    private val consoleProvider: () -> Console? = System::console
+    private val consoleProvider: () -> Console? = System::console,
+    private val courseCommand: (List<String>) -> Int = { throw MoodleException.FeatureUnavailable("Course commands") }
 ) {
     fun run(command: String): Int = when (command) {
         "health" -> {
@@ -107,7 +108,7 @@ class AccessCommands(
     }
 
     private fun runSession(console: Console) {
-        output("Session is held in memory only. Commands: health, logout, exit.")
+        output("Session is held in memory only. Commands: courses, course <id>, read, download, health, logout, exit.")
         try {
             while (runSessionCommand(console.readLine("moodle> ")?.trim())) {
                 // Commands are handled individually; the session owns credential cleanup.
@@ -120,16 +121,16 @@ class AccessCommands(
     private fun runSessionCommand(command: String?): Boolean {
         when (command) {
             "logout", "exit", null -> return false
-            "health" -> runHealthSafely()
             "" -> Unit
-            else -> output("Commands: health, logout, exit.")
+            else -> runSessionSafely(command)
         }
         return true
     }
 
-    private fun runHealthSafely() {
+    private fun runSessionSafely(command: String) {
         try {
-            health()
+            val args = SessionArguments.parse(command)
+            if (args == listOf("health")) health() else courseCommand(args)
         } catch (error: MoodleException) {
             output(error.message ?: "Moodle check failed.")
         }
@@ -148,6 +149,7 @@ class AccessCommands(
     private companion object {
         val REQUIRED_FUNCTIONS = mapOf(
             "Courses" to "core_enrol_get_users_courses",
+            "Course contents" to "core_course_get_contents",
             "Assignments" to "mod_assign_get_assignments",
             "Submission status" to "mod_assign_get_submission_status"
         )

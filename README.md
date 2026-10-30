@@ -17,7 +17,7 @@ command interface. API access depends on the target Moodle instance and permissi
 
 ## Build and run
 
-Use a JDK matching the toolchain declared in [build.gradle.kts](build.gradle.kts).
+Use a JDK matching the toolchain declared in [gradle.properties](gradle.properties).
 Open this folder as a Gradle project in IntelliJ IDEA, or use the Gradle Wrapper:
 
 ```sh
@@ -67,14 +67,41 @@ page and choose Copy Link. Paste it into the terminal's hidden prompt, not into 
 or a shell command. Use the link from the current login attempt.
 
 Both paths validate the callback against the current attempt and verify the token
-with `core_webservice_get_site_info`. The in-memory session accepts `health`,
-`logout`, and `exit`. Credentials are not saved between processes. A callback is
+with `core_webservice_get_site_info`. The in-memory session accepts `courses`,
+`course`, `read`, `download`, `health`, `logout`, and `exit`. Credentials are not saved between processes. A callback is
 single-use and expires after fifteen minutes; automatic browser waiting stops after
 ten minutes. Close the separate browser window or press Ctrl+C to cancel.
 
-Function exposure does not guarantee access to every course or activity. Course
-listing and assignment requests remain separate implementation milestones.
+Function exposure does not guarantee access to every course or activity.
 See [Authentication](Docs/AUTHENTICATION.md) for the security boundaries and browser requirements.
+
+## Browse course materials
+
+After signing in, run these commands at the `moodle>` prompt (replace example IDs
+with those shown in your course list):
+
+```text
+courses
+course 1234
+read 1234 5678
+download 1234 5678 1
+download 1234 5678 1 "./My Materials"
+```
+
+`course` displays sections, descriptions, inline text, and numbered files for each
+activity. `read` displays the text of an activity, including the full HTML content
+of Moodle Page resources. HTML is parsed locally into plain text; scripts and
+terminal control characters are removed. Complex activities are listed but do not
+have a dedicated reader yet. These commands require the same running login session;
+a separate `moodle courses` process has no saved credentials.
+
+`download` selects a file by course ID, activity ID, and the file number displayed
+by `course`. It saves into `./downloads` by default, or the quoted directory you
+provide. Existing files are never overwritten. Unsafe remote filenames and downloads
+outside the configured Moodle file endpoint are refused. Downloads are limited to
+512 MiB per file; reading a text page is limited to 2 MiB. Redirects are not followed,
+and the token is sent in the POST body rather than appended to a URL. Moodle must
+enable file downloads for the mobile Web Service. Files are not opened automatically.
 
 ## Structure
 

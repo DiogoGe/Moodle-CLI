@@ -1,7 +1,6 @@
 package moodle.application
 
 import moodle.domain.entities.Assignment
-import moodle.domain.entities.Course
 import moodle.domain.interfaces.MoodleRepository
 import java.time.Clock
 import java.time.Instant
@@ -52,8 +51,6 @@ class MoodleServiceTest {
         Assignment(id = id, courseId = 1, name = "Task $id", dueDate = dueDate)
 
     private class FakeRepository(private val assignments: List<Assignment>) : MoodleRepository {
-        override fun getCourses(): List<Course> = emptyList()
-
         override fun getAssignments(): List<Assignment> = assignments
     }
 }

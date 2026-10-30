@@ -19,6 +19,9 @@ These commands describe the intended interface, not features already implemented
 | `moodle login` | Authenticate through one method supported by the target instance. Hide secret input. |
 | `moodle health` | Report connection health, authentication status, and availability of required API functions. |
 | `moodle courses` | List accessible enrolled courses with their IDs and names. |
+| `course <id>` | Within the login session, display sections, activity descriptions, inline text, and numbered files. |
+| `read <course-id> <module-id>` | Display activity text, including the full content of Moodle Page resources, as plain text. |
+| `download <course-id> <module-id> <file-number> [directory]` | Download one listed file without overwriting existing files. |
 | `moodle tasks` | List accessible assignments with course, title, deadline when present, and submission status when available. |
 | `moodle tasks --course <id>` | Restrict results to the selected accessible course. |
 | `moodle upcoming --days 7` | Show assignments due within the requested period, ordered by deadline. Reject invalid day counts. |
@@ -33,9 +36,9 @@ selected future period; older deadlines remain visible through `tasks`.
 
 ## Next milestone: course materials
 
-- List course sections and downloadable files.
+- List course sections, text descriptions, inline content, and downloadable files.
 - Download an individual file or the available files of a course.
-- Allow a destination directory and organize files by course and section.
+- Allow a destination directory; organizing bulk downloads by course and section is a later extension.
 - Skip existing files by default; require an explicit option to overwrite them.
 - Keep downloaded files inside the selected destination, including when remote
   filenames contain unsafe path components.
