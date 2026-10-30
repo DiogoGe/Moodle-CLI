@@ -3,9 +3,7 @@ package moodle.config
 import java.net.URI
 
 /** Non-secret connection settings. Credentials must be stored separately. */
-data class MoodleConfig(
-    val baseUrl: String
-) {
+data class MoodleConfig(val baseUrl: String) {
     init {
         val uri = URI(baseUrl)
         require(uri.scheme == "https" && !uri.host.isNullOrBlank()) {

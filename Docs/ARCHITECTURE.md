@@ -68,7 +68,7 @@ or global service locator is required. The following is a design sketch:
 ```kotlin
 class MoodleService(
     private val repository: MoodleRepository,
-    private val clock: Clock,
+    private val clock: Clock
 )
 ```
 
@@ -107,3 +107,21 @@ and [data class documentation](https://kotlinlang.org/docs/data-classes.html).
 Keep the initial design small: no interface for every class, generic base repository,
 or separate Gradle module per layer. Add credential storage and download boundaries
 when those features are implemented.
+
+## Browser login responsibilities
+
+`BrowserLoginService` validates the login attempt and callback; `LoginAttempt` is
+its separate state type. The browser implementation has three concrete parts:
+
+- `IsolatedChromeLoginBrowser` coordinates opening a page and waiting for the callback.
+- `ChromeProcess` owns the process, private pipes, temporary profile, and cleanup.
+- `ChromeLoginPage` configures one browser tab and reads its expected callback link.
+
+`ChromePipe` handles bounded protocol messages and response matching. `MoodleCallbackPage`
+contains the scoped capture scripts. These classes keep transport and process details
+inside infrastructure. The private browser, callback validation, and credential
+lifetime remain as described in [Authentication](AUTHENTICATION.md).
+
+API DTOs live under `infrastructure/api/dtos`. Mapping to domain types is kept in
+`ApiMappers.kt`. Domain enums, including `SubmissionStatus`, belong under `domain/enums`;
+domain entities must not depend on infrastructure.

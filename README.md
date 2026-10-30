@@ -40,6 +40,42 @@ On Windows, use `gradlew.bat`. To generate a local launcher:
 ./build/install/moodle/bin/moodle --help
 ```
 
+## Check API access and sign in
+
+The CLI currently targets `https://moodle.zhaw.ch/`. Use the installed launcher in a
+real terminal for hidden credential input:
+
+```sh
+./gradlew installDist
+./build/install/moodle/bin/moodle doctor
+./build/install/moodle/bin/moodle login
+```
+
+`doctor` checks the public Web Service configuration. `login` opens a separate
+private Chrome/Chromium window on macOS or Linux. Complete the normal SWITCH login;
+the CLI receives the final app link automatically and closes that browser. Your
+normal browser profiles and the official ZHAW app link registration are not changed.
+
+For another browser, or if automatic login is unavailable:
+
+```sh
+./build/install/moodle/bin/moodle login --manual
+```
+
+Complete the normal login, then right-click the app launch link on the final Moodle
+page and choose Copy Link. Paste it into the terminal's hidden prompt, not into chat
+or a shell command. Use the link from the current login attempt.
+
+Both paths validate the callback against the current attempt and verify the token
+with `core_webservice_get_site_info`. The in-memory session accepts `doctor`,
+`logout`, and `exit`. Credentials are not saved between processes. A callback is
+single-use and expires after fifteen minutes; automatic browser waiting stops after
+ten minutes. Close the separate browser window or press Ctrl+C to cancel.
+
+Function exposure does not guarantee access to every course or activity. Course
+listing and assignment requests remain separate implementation milestones.
+See [Authentication](Docs/AUTHENTICATION.md) for the security boundaries and browser requirements.
+
 ## Structure
 
 ```text

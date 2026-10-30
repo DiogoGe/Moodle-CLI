@@ -1,27 +1,26 @@
 plugins {
-    kotlin("jvm") version "2.4.21"
-    kotlin("plugin.serialization") version "2.4.21"
-    id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ktlint)
     application
 }
 
 group = "moodle"
-version = "0.1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    implementation("com.squareup.retrofit2:retrofit:3.0.0")
-    implementation("com.squareup.retrofit2:converter-kotlinx-serialization:3.0.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
-    testImplementation(kotlin("test-junit5"))
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.14.0")
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.kotlinx.serialization)
+    implementation(libs.kotlinx.serialization.json)
+    testImplementation(libs.kotlin.test.junit5)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 kotlin {
-    jvmToolchain(25)
+    jvmToolchain(providers.gradleProperty("javaToolchainVersion").get().toInt())
 }
 
 application {
@@ -30,11 +29,12 @@ application {
 }
 
 tasks.test {
+    inputs.property("chromeIntegration", providers.environmentVariable("MOODLE_CHROME_TESTS").orElse("false"))
     useJUnitPlatform()
 }
 
 ktlint {
-    version.set("1.7.1")
+    version.set(libs.versions.ktlint.engine)
     filter {
         exclude("**/.gradle-user-home/**")
         exclude("**/build/**")

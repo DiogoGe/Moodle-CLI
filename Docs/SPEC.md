@@ -110,7 +110,9 @@ clearly rather than presenting them as empty results.
 - Teacher and administrator features.
 - Automatically answering quizzes or exams.
 - Supporting every Moodle version or institutional authentication method.
-- Browser cookie import, HTML scraping, and automated browser login.
+- Importing existing browser cookies, scraping course pages, or entering institutional passwords automatically.
+  Automatic capture of the final mobile-login callback uses a separate private browser context;
+  see [Authentication](AUTHENTICATION.md).
 - A graphical interface, hosting, and AI or MCP integration.
 
 ## Implementation milestones

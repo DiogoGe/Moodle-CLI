@@ -1,6 +1,6 @@
-package moodle.domain
+package moodle.domain.entities
 
-import moodle.infrastructure.enums.SubmissionStatus
+import moodle.domain.enums.SubmissionStatus
 import java.time.Instant
 
 data class Assignment(
