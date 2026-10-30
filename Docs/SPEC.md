@@ -27,6 +27,7 @@ These commands describe the intended interface, not features already implemented
 | `moodle upcoming --days 7` | Show assignments due within the requested period, ordered by deadline. Reject invalid day counts. |
 | `moodle logout` | Remove locally stored credentials. Do not claim to revoke the token on the server. |
 | `moodle --help` | Explain commands and options with examples. |
+| `moodle --lang de\|en <command>` | Override the system language for all messages in the process and login session. |
 
 Assignments without deadlines must be labelled accordingly. Submission status must
 come from reliable API data; unavailable status is shown as unknown. An elapsed
@@ -81,6 +82,9 @@ and connects the dependencies through constructors. See [Architecture](ARCHITECT
 for the class diagram and Kotlin conventions.
 
 ## Quality requirements
+
+- German and English user-facing messages, with English fallback for other system languages.
+  Keep command names and original course content unchanged across languages.
 
 - Readable output for empty results, long names, and missing optional values.
 - Clear errors for invalid input, insufficient permissions, expired authentication,

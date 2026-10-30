@@ -14,21 +14,21 @@ import java.nio.file.StandardOpenOption
 internal class LocalCourseFiles(private val client: MoodleFileClient) : CourseFiles {
     override fun download(token: AccessToken, file: CourseFile, directory: String): DownloadedFile {
         validateFileName(file.name)
-        if (file.size > MAX_DOWNLOAD_BYTES) throw MoodleException.Download("File exceeds the 512 MiB download limit.")
+        if (file.size > MAX_DOWNLOAD_BYTES) throw MoodleException.Download("error.download.tooLarge")
         try {
             val root = Files.createDirectories(Path.of(directory)).toRealPath()
             val target = root.resolve(file.name)
             return client.read(token, file) { input -> save(input, target) }
         } catch (_: InvalidPathException) {
-            throw MoodleException.Download("Invalid destination directory.")
+            throw MoodleException.Download("error.download.directory")
         } catch (_: java.io.IOException) {
-            throw MoodleException.Download("Cannot save the file. Check the destination; existing files are never overwritten.")
+            throw MoodleException.Download("error.download.save")
         }
     }
 
     override fun readText(token: AccessToken, file: CourseFile): String = client.read(token, file) { input ->
         val bytes = input.readNBytes(MAX_TEXT_BYTES + 1)
-        if (bytes.size > MAX_TEXT_BYTES) throw MoodleException.Download("Text page exceeds the 2 MiB display limit.")
+        if (bytes.size > MAX_TEXT_BYTES) throw MoodleException.Download("error.download.textTooLarge")
         bytes.toString(Charsets.UTF_8)
     }
 
@@ -43,7 +43,7 @@ internal class LocalCourseFiles(private val client: MoodleFileClient) : CourseFi
                     val count = input.read(buffer)
                     if (count == -1) break
                     total += count
-                    if (total > MAX_DOWNLOAD_BYTES) throw MoodleException.Download("File exceeds the 512 MiB download limit.")
+                    if (total > MAX_DOWNLOAD_BYTES) throw MoodleException.Download("error.download.tooLarge")
                     stream.write(buffer, 0, count)
                 }
                 total
@@ -58,7 +58,7 @@ internal class LocalCourseFiles(private val client: MoodleFileClient) : CourseFi
     private fun validateFileName(name: String) {
         val unsafe = name.isBlank() || name in setOf(".", "..") || name.any { it.isISOControl() || it in "\\/:*?\"<>|" }
         if (unsafe || name.endsWith('.') || name.endsWith(' ')) {
-            throw MoodleException.Download("Moodle returned an unsafe file name; download was refused.")
+            throw MoodleException.Download("error.download.unsafeName")
         }
     }
 

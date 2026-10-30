@@ -107,3 +107,22 @@ lifetime remain as described in [Authentication](AUTHENTICATION.md).
 API DTOs live under `infrastructure/api/dtos`. Mapping to domain types is kept in
 `ApiMappers.kt`. Domain enums, including `SubmissionStatus`, belong under `domain/enums`;
 domain entities must not depend on infrastructure.
+
+## Localized presentation
+
+The CLI owns `Messages`, which loads JDK `ResourceBundle` properties and formats
+parameterized text with `MessageFormat`. English resources are the fallback;
+German resources cover German locales. Global `--lang de|en` is parsed at startup
+and one `Messages` instance is injected into CLI components. The JVM's global
+locale is never changed.
+
+`MoodleException` carries a stable message key and safe formatting arguments.
+Domain, application, and infrastructure code do not load resources or select a
+language. The CLI translates errors at the output boundary. Programmer assertions
+and protocol identifiers stay separate from user-facing text. Remote Moodle
+messages are still sanitized rather than displayed directly. IDs are formatted
+without digit grouping so they can be copied into commands.
+
+When adding a message, add the same key and numbered placeholders to both resource
+files. Keep properties UTF-8; escape literal apostrophes as `''` for MessageFormat.
+Course content is not translated. Command names are the same in both languages.

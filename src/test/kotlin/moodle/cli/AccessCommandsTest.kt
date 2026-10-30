@@ -34,7 +34,7 @@ class AccessCommandsTest {
 
         for (command in listOf("login", "login-manual")) {
             val error = assertFailsWith<MoodleException.Authentication> { commands.run(command) }
-            assertTrue(error.message.orEmpty().contains("terminal with hidden input"))
+            assertEquals("error.login.console", error.messageKey)
         }
         assertEquals(0, apiCalls)
     }

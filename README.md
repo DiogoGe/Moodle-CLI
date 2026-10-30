@@ -40,6 +40,21 @@ On Windows, use `gradlew.bat`. To generate a local launcher:
 ./build/install/moodle/bin/moodle --help
 ```
 
+## Language
+
+Messages and help follow the system language: German for German locales (including
+Swiss German), English otherwise. Override the language before the command:
+
+```sh
+./build/install/moodle/bin/moodle --lang de login
+./build/install/moodle/bin/moodle --lang en --help
+```
+
+The selected language applies to the entire in-memory login session. Command names
+such as `courses`, `read`, `download`, and `cancel` remain unchanged. Course content
+is displayed in its original language. Translations live in UTF-8 resource files
+under `src/main/resources/i18n`; English is the fallback language.
+
 ## Check API access and sign in
 
 The CLI currently targets `https://moodle.zhaw.ch/`. Use the installed launcher in a

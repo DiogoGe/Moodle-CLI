@@ -1,12 +1,14 @@
 package moodle.cli
 
 import moodle.application.BrowserLoginService
+import moodle.cli.i18n.Messages
 import moodle.domain.exceptions.MoodleException
 import java.security.MessageDigest
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.Base64
+import java.util.Locale
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -31,7 +33,7 @@ class LoginCallbackReaderTest {
         val correctInput = "moodlecli://token=$payload".toCharArray()
         val inputs = ArrayDeque(listOf(wrongInput, correctInput))
         val output = mutableListOf<String>()
-        val reader = LoginCallbackReader(service, { inputs.removeFirstOrNull() }, output::add)
+        val reader = LoginCallbackReader(service, { inputs.removeFirstOrNull() }, output::add, Messages(Locale.ENGLISH))
 
         assertEquals(tokenValue, reader.read(attempt).value)
         assertTrue(output.any { "browser page address" in it })
@@ -47,7 +49,7 @@ class LoginCallbackReaderTest {
 
         val error = assertFailsWith<MoodleException.Authentication> { reader.read(service.begin()) }
 
-        assertEquals("Login cancelled.", error.message)
+        assertEquals("error.login.cancelled", error.messageKey)
         assertTrue(input.all { it == '\u0000' })
     }
 

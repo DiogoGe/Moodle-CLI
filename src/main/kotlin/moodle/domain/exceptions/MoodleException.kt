@@ -1,15 +1,18 @@
 package moodle.domain.exceptions
 
-sealed class MoodleException(message: String) : RuntimeException(message) {
-    class Input(message: String) : MoodleException(message)
+/** Stable failure identifiers; the CLI translates them without retaining upstream error messages. */
+sealed class MoodleException(val messageKey: String, vararg arguments: Any) : RuntimeException(messageKey) {
+    val arguments: List<Any> = arguments.toList()
 
-    class Download(message: String) : MoodleException(message)
+    class Input(key: String, vararg arguments: Any) : MoodleException(key, *arguments)
 
-    class Authentication(message: String) : MoodleException(message)
+    class Download(key: String, vararg arguments: Any) : MoodleException(key, *arguments)
 
-    class InvalidCallback(message: String) : MoodleException(message)
+    class Authentication(key: String, vararg arguments: Any) : MoodleException(key, *arguments)
 
-    class Connection(message: String) : MoodleException(message)
+    class InvalidCallback(key: String, vararg arguments: Any) : MoodleException(key, *arguments)
 
-    class FeatureUnavailable(feature: String) : MoodleException("$feature is not implemented yet.")
+    class Connection(key: String, vararg arguments: Any) : MoodleException(key, *arguments)
+
+    class FeatureUnavailable(feature: String) : MoodleException("error.featureUnavailable", feature)
 }

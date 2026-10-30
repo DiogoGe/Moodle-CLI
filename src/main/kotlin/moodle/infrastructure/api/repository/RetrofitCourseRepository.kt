@@ -30,21 +30,21 @@ internal class RetrofitCourseRepository(private val api: MoodleApi, private val 
     private fun <T> load(call: Call<JsonElement>, decode: (JsonElement) -> T): T {
         try {
             val response = call.execute()
-            if (!response.isSuccessful) throw MoodleException.Connection("Moodle API returned HTTP ${response.code()}.")
-            val body = response.body() ?: throw MoodleException.Connection("Moodle returned an empty response.")
+            if (!response.isSuccessful) throw MoodleException.Connection("error.api.http", response.code())
+            val body = response.body() ?: throw MoodleException.Connection("error.api.emptyCourse")
             if (body is JsonObject) throw apiError(body)
             return decode(body)
         } catch (_: IOException) {
-            throw MoodleException.Connection("Cannot reach Moodle. Check the connection and try again.")
+            throw MoodleException.Connection("error.api.connection")
         } catch (_: SerializationException) {
-            throw MoodleException.Connection("Moodle returned an unsupported course response.")
+            throw MoodleException.Connection("error.api.courseResponse")
         } catch (_: IllegalArgumentException) {
-            throw MoodleException.Connection("Moodle returned an unsupported course response.")
+            throw MoodleException.Connection("error.api.courseResponse")
         }
     }
 
     private fun apiError(body: JsonObject): MoodleException = when (body["errorcode"]?.toString()?.trim('"')) {
-        "invalidtoken", "requireloginerror" -> MoodleException.Authentication("Session expired. Sign in again.")
-        else -> MoodleException.Connection("Course data is unavailable. Check course access and Web Service permissions.")
+        "invalidtoken", "requireloginerror" -> MoodleException.Authentication("error.session.expired")
+        else -> MoodleException.Connection("error.api.courseAccess")
     }
 }

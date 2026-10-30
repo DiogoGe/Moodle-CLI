@@ -38,7 +38,7 @@ class BrowserLoginService(private val baseUrl: String, private val clock: Clock)
 
     private fun validateAttempt(attempt: LoginAttempt) {
         if (attempt.used || clock.instant() > attempt.startedAt.plus(Duration.ofMinutes(15))) {
-            throw MoodleException.Authentication("Login attempt expired or already used. Start login again.")
+            throw MoodleException.Authentication("error.login.expired")
         }
     }
 
@@ -46,12 +46,11 @@ class BrowserLoginService(private val baseUrl: String, private val clock: Clock)
         val value = callback.trim()
         if (value.startsWith("https://", ignoreCase = true) || value.startsWith("http://", ignoreCase = true)) {
             throw MoodleException.InvalidCallback(
-                "That is the browser page address. On the final Moodle page, right-click the app launch link " +
-                    "and choose Copy Link. Paste that app link here, not the address bar URL."
+                "error.callback.address"
             )
         }
         return CALLBACK.matchEntire(value) ?: throw MoodleException.InvalidCallback(
-            "Expected an app link such as moodlecli://token=... . Copy the app launch link from the Moodle page."
+            "error.callback.expected"
         )
     }
 
@@ -61,14 +60,14 @@ class BrowserLoginService(private val baseUrl: String, private val clock: Clock)
             val encoded = URLDecoder.decode(payload.replace("+", "%2B"), StandardCharsets.UTF_8)
             return String(Base64.getDecoder().decode(encoded), StandardCharsets.UTF_8).split(":::")
         } catch (_: IllegalArgumentException) {
-            throw MoodleException.InvalidCallback("Invalid login callback encoding.")
+            throw MoodleException.InvalidCallback("error.callback.encoding")
         }
     }
 
     private fun validateSignature(attempt: LoginAttempt, parts: List<String>) {
         val expected = createSiteHash(attempt)
         if (parts.size !in 2..3 || !MessageDigest.isEqual(expected.toByteArray(), parts[0].toByteArray())) {
-            throw MoodleException.InvalidCallback("The callback does not belong to this site and login attempt.")
+            throw MoodleException.InvalidCallback("error.callback.attempt")
         }
     }
 
@@ -85,7 +84,7 @@ class BrowserLoginService(private val baseUrl: String, private val clock: Clock)
         try {
             return AccessToken(value)
         } catch (_: IllegalArgumentException) {
-            throw MoodleException.InvalidCallback("The callback contains an invalid Moodle token.")
+            throw MoodleException.InvalidCallback("error.callback.token")
         }
     }
 

@@ -1,6 +1,7 @@
 package moodle.cli
 
-import moodle.domain.exceptions.MoodleException
+import moodle.cli.i18n.Messages
+import java.util.Locale
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -9,7 +10,7 @@ class MoodleCliTest {
     @Test
     fun `help succeeds without contacting the repository`() {
         val output = mutableListOf<String>()
-        val cli = MoodleCli(output = output::add)
+        val cli = MoodleCli(output = output::add, messages = Messages(Locale.ENGLISH))
 
         assertEquals(0, cli.run(arrayOf("--help")))
         assertTrue(output.single().contains("Usage: moodle"))
@@ -21,7 +22,8 @@ class MoodleCliTest {
         val errors = mutableListOf<String>()
         val cli = MoodleCli(
             output = output::add,
-            errorOutput = errors::add
+            errorOutput = errors::add,
+            messages = Messages(Locale.ENGLISH)
         )
 
         assertEquals(1, cli.run(arrayOf("courses")))

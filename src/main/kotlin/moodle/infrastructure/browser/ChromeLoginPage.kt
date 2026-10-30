@@ -102,6 +102,6 @@ internal class ChromeLoginPage private constructor(
         }
 
         private fun JsonObject?.requiredString(key: String): String = this?.get(key)?.jsonPrimitive?.contentOrNull
-            ?: throw MoodleException.Authentication("The login browser returned an unsupported response.")
+            ?: throw MoodleException.Authentication("error.browser.response")
     }
 }

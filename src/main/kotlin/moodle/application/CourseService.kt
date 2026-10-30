@@ -22,7 +22,7 @@ class CourseService(private val access: AccessService, private val repository: C
         val page = module.files.firstOrNull { module.type == "page" && it.name == "index.html" }
         val pageText = page?.let { file -> access.withSession { token, _ -> files.readText(token, file) } }
         val text = (inline + listOfNotNull(pageText)).filter { it.isNotBlank() }.joinToString("\n")
-        if (text.isBlank()) throw MoodleException.Input("This activity has no readable text exposed by Moodle.")
+        if (text.isBlank()) throw MoodleException.Input("error.course.noText")
         return text
     }
 
@@ -32,20 +32,20 @@ class CourseService(private val access: AccessService, private val repository: C
         fileNumber: Int,
         directory: String
     ): DownloadedFile {
-        if (fileNumber <= 0) throw MoodleException.Input("File number must be positive.")
+        if (fileNumber <= 0) throw MoodleException.Input("error.input.fileNumber")
         val module = findModule(courseId, moduleId)
         val file = module.files.getOrNull(fileNumber - 1)
-            ?: throw MoodleException.Input("Unknown file number. Run course $courseId to list files.")
+            ?: throw MoodleException.Input("error.course.fileNumber", courseId)
         return access.withSession { token, _ -> files.download(token, file, directory) }
     }
 
     private fun findModule(courseId: Long, moduleId: Long): CourseModule {
         validateId(moduleId)
         return getContents(courseId).flatMap { it.modules }.firstOrNull { it.id == moduleId }
-            ?: throw MoodleException.Input("Activity not found or unavailable in this course.")
+            ?: throw MoodleException.Input("error.course.module")
     }
 
     private fun validateId(id: Long) {
-        if (id <= 0) throw MoodleException.Input("IDs must be positive numbers.")
+        if (id <= 0) throw MoodleException.Input("error.input.id")
     }
 }

@@ -15,7 +15,7 @@ class AccessService(private val access: MoodleAccess, private val siteUrl: Strin
     fun login(candidate: AccessToken): SiteInfo {
         val info = access.getSiteInfo(candidate)
         if (info.siteUrl.trimEnd('/') != siteUrl.trimEnd('/')) {
-            throw MoodleException.Authentication("Moodle returned a different site. Login was not accepted.")
+            throw MoodleException.Authentication("error.session.siteMismatch")
         }
         token = candidate
         userId = info.userId
@@ -32,8 +32,8 @@ class AccessService(private val access: MoodleAccess, private val siteUrl: Strin
     }
 
     fun <T> withSession(action: (AccessToken, Long) -> T): T {
-        val currentToken = token ?: throw MoodleException.Authentication("Sign in first using login.")
-        val currentUser = userId ?: throw MoodleException.Authentication("Sign in first using login.")
+        val currentToken = token ?: throw MoodleException.Authentication("error.session.required")
+        val currentUser = userId ?: throw MoodleException.Authentication("error.session.required")
         try {
             return action(currentToken, currentUser)
         } catch (error: MoodleException.Authentication) {

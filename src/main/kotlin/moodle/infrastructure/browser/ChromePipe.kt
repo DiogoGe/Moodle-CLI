@@ -109,7 +109,7 @@ internal class ChromePipe(
     }
 
     private fun failure(): MoodleException.Authentication = MoodleException.Authentication(
-        "The isolated login browser closed or did not respond. Try again, or use login --manual."
+        "error.browser.connection"
     )
 
     private companion object {

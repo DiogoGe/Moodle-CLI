@@ -10,7 +10,8 @@ import java.util.concurrent.TimeUnit
 internal class ChromeProcess private constructor(
     private val process: Process,
     val connection: ChromePipe,
-    private val profile: Path
+    private val profile: Path,
+    private val onCleanupFailure: () -> Unit
 ) : AutoCloseable {
     private var closed = false
     private val shutdownHook = Thread(::closeAtShutdown, "moodle-login-cleanup")
@@ -31,7 +32,7 @@ internal class ChromeProcess private constructor(
             deleteProfile(profile)
         } catch (_: Exception) {
             throw MoodleException.Authentication(
-                "The temporary browser could not be fully cleaned up. Close its window before trying again."
+                "error.browser.cleanup"
             )
         } finally {
             runCatching { Runtime.getRuntime().removeShutdownHook(shutdownHook) }
@@ -52,18 +53,23 @@ internal class ChromeProcess private constructor(
         try {
             close()
         } catch (_: Exception) {
-            System.err.println("Temporary login browser cleanup failed.")
+            onCleanupFailure()
         }
     }
 
     companion object {
-        fun start(executable: Path, headless: Boolean, profileParent: Path?): ChromeProcess {
+        fun start(
+            executable: Path,
+            headless: Boolean,
+            profileParent: Path?,
+            onCleanupFailure: () -> Unit
+        ): ChromeProcess {
             val profile = createProfile(profileParent)
             var process: Process? = null
             try {
                 process = launch(executable, profile, headless)
                 val connection = ChromePipe(process.inputStream, process.outputStream)
-                return ChromeProcess(process, connection, profile)
+                return ChromeProcess(process, connection, profile, onCleanupFailure)
             } catch (error: Exception) {
                 process?.destroyForcibly()
                 deleteProfile(profile)
@@ -81,7 +87,7 @@ internal class ChromeProcess private constructor(
             )
             return candidates.map(Path::of).firstOrNull { Files.isExecutable(it) }
                 ?: throw MoodleException.Authentication(
-                    "Automatic login needs Chrome or Chromium on macOS/Linux. Use login --manual with your normal browser."
+                    "error.browser.missing"
                 )
         }
 

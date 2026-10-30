@@ -32,14 +32,14 @@ internal class MoodleFileClient(baseUrl: String, private val http: OkHttpClient 
                 .build()
             return http.newCall(request).execute().use { response ->
                 checkResponse(response)
-                val body = response.body ?: throw MoodleException.Download("Moodle returned an empty file response.")
+                val body = response.body ?: throw MoodleException.Download("error.download.empty")
                 body.byteStream().buffered().use { input ->
                     checkApiError(input)
                     consume(input)
                 }
             }
         } catch (_: IOException) {
-            throw MoodleException.Download("File transfer failed. Check the connection and destination directory.")
+            throw MoodleException.Download("error.download.transfer")
         }
     }
 
@@ -47,12 +47,12 @@ internal class MoodleFileClient(baseUrl: String, private val http: OkHttpClient 
         val url = try {
             value.toHttpUrl()
         } catch (_: IllegalArgumentException) {
-            throw MoodleException.Download("Moodle returned an invalid file URL.")
+            throw MoodleException.Download("error.download.url")
         }
         val sameOrigin = url.scheme == site.scheme && url.host == site.host && url.port == site.port
         val fileEndpoint = url.encodedPath == endpoint || url.encodedPath.startsWith("$endpoint/")
         if (!sameOrigin || !fileEndpoint || url.username.isNotEmpty() || url.password.isNotEmpty()) {
-            throw MoodleException.Download("Only files served by this Moodle instance can be downloaded.")
+            throw MoodleException.Download("error.download.origin")
         }
         // Keep only the file argument for installations without slash arguments; discard any supplied credentials.
         val builder = url.newBuilder().query(null).fragment(null)
@@ -61,9 +61,9 @@ internal class MoodleFileClient(baseUrl: String, private val http: OkHttpClient 
     }
 
     private fun checkResponse(response: Response) {
-        if (response.code == 401) throw MoodleException.Authentication("Session expired. Sign in again.")
+        if (response.code == 401) throw MoodleException.Authentication("error.session.expired")
         if (!response.isSuccessful) {
-            throw MoodleException.Download("Moodle file request returned HTTP ${response.code}. Redirects are not followed.")
+            throw MoodleException.Download("error.download.http", response.code)
         }
     }
 
@@ -75,9 +75,9 @@ internal class MoodleFileClient(baseUrl: String, private val http: OkHttpClient 
             val error = runCatching { Json.parseToJsonElement(prefix) as? JsonObject }.getOrNull()
             val code = (error?.get("errorcode") as? JsonPrimitive)?.contentOrNull
             if (code in setOf("invalidtoken", "requireloginerror")) {
-                throw MoodleException.Authentication("Session expired. Sign in again.")
+                throw MoodleException.Authentication("error.session.expired")
             }
-            throw MoodleException.Download("Moodle refused this file. Check file access and Web Service download permissions.")
+            throw MoodleException.Download("error.download.denied")
         }
     }
 

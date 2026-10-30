@@ -30,20 +30,20 @@ internal class RetrofitMoodleAccess(private val api: MoodleApi, private val json
     private fun loadPublicConfig(): PublicConfigDto {
         val response = api.getPublicConfig(listOf(PublicConfigRequestDto())).execute()
         if (!response.isSuccessful) {
-            throw MoodleException.Connection("Moodle public API returned HTTP ${response.code()}.")
+            throw MoodleException.Connection("error.api.publicHttp", response.code())
         }
         val envelope = response.body()?.singleOrNull()
-            ?: throw MoodleException.Connection("Moodle returned an unexpected public API response.")
-        if (envelope.error) throw MoodleException.Connection("Moodle public configuration is unavailable.")
-        return envelope.data ?: throw MoodleException.Connection("Moodle public configuration is unavailable.")
+            ?: throw MoodleException.Connection("error.api.publicResponse")
+        if (envelope.error) throw MoodleException.Connection("error.api.publicUnavailable")
+        return envelope.data ?: throw MoodleException.Connection("error.api.publicUnavailable")
     }
 
     private fun loadSiteInfo(token: AccessToken): JsonObject {
         val response = api.getSiteInfo(token.value).execute()
         if (!response.isSuccessful) {
-            throw MoodleException.Connection("Moodle authenticated API returned HTTP ${response.code()}.")
+            throw MoodleException.Connection("error.api.authHttp", response.code())
         }
-        return response.body() ?: throw MoodleException.Connection("Moodle returned an empty API response.")
+        return response.body() ?: throw MoodleException.Connection("error.api.empty")
     }
 
     private fun checkApiError(body: JsonObject) {
@@ -51,9 +51,9 @@ internal class RetrofitMoodleAccess(private val api: MoodleApi, private val json
         if (code == null && "exception" !in body) return
         when (code) {
             "invalidtoken", "accessexception", "requireloginerror" -> throw MoodleException.Authentication(
-                "Moodle rejected the token or its service permissions. Sign in again."
+                "error.api.token"
             )
-            else -> throw MoodleException.Connection("Moodle could not complete the site information request.")
+            else -> throw MoodleException.Connection("error.api.siteInfo")
         }
     }
 
@@ -61,11 +61,11 @@ internal class RetrofitMoodleAccess(private val api: MoodleApi, private val json
         try {
             return action()
         } catch (_: IOException) {
-            throw MoodleException.Connection("Cannot reach Moodle. Check the connection and try again.")
+            throw MoodleException.Connection("error.api.connection")
         } catch (_: SerializationException) {
-            throw MoodleException.Connection("Moodle returned an unsupported API response.")
+            throw MoodleException.Connection("error.api.response")
         } catch (_: IllegalArgumentException) {
-            throw MoodleException.Connection("Moodle returned an unsupported API response.")
+            throw MoodleException.Connection("error.api.response")
         }
     }
 }

@@ -20,7 +20,7 @@ internal object SessionArguments {
                 else -> current.append(character)
             }
         }
-        if (quote != null) throw MoodleException.Input("Close the quoted argument before running the command.")
+        if (quote != null) throw MoodleException.Input("error.input.quote")
         if (current.isNotEmpty()) arguments.add(current.toString())
         return arguments
     }
