@@ -26,6 +26,13 @@ Open this folder as a Gradle project in IntelliJ IDEA, or use the Gradle Wrapper
 ./gradlew test
 ```
 
+Formatting follows `.editorconfig` and is checked as part of the build:
+
+```sh
+./gradlew ktlintFormat  # Apply Kotlin formatting
+./gradlew ktlintCheck   # Check Kotlin formatting without modifying files
+```
+
 On Windows, use `gradlew.bat`. To generate a local launcher:
 
 ```sh
