@@ -1,5 +1,6 @@
 package moodle.domain
 
+import moodle.infrastructure.enums.SubmissionStatus
 import java.time.Instant
 
 data class Assignment(
@@ -10,9 +11,3 @@ data class Assignment(
     val submissionStatus: SubmissionStatus = SubmissionStatus.UNKNOWN,
 )
 
-enum class SubmissionStatus {
-    UNKNOWN,
-    NOT_SUBMITTED,
-    DRAFT,
-    SUBMITTED,
-}
