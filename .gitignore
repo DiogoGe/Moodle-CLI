@@ -1,5 +1,6 @@
 # Gradle and Kotlin generated files
 .gradle/
+.gradle-user-home/
 .kotlin/
 build/
 out/

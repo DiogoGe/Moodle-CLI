@@ -1,7 +1,5 @@
 # Dependency decisions
 
-Status: agreed initial approach.
-
 ## Initial dependencies
 
 | Dependency | Responsibility |
@@ -15,8 +13,9 @@ Retrofit brings in OkHttp as a transitive dependency. We do not need Ktor or a
 second HTTP client. Kotlin serialization also requires its Kotlin compiler plugin;
 configure that plugin alongside the JSON runtime library.
 
-Exact versions will be selected and pinned during project setup, after checking
-compatibility. This document records the choices, not installed dependencies.
+Dependency and toolchain versions are defined in `build.gradle.kts` and
+`gradle/wrapper/gradle-wrapper.properties`. Keep version numbers in those build
+files rather than duplicating them here.
 
 ## Functionality provided without additional libraries
 

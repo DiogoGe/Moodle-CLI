@@ -1,7 +1,5 @@
 # Moodle CLI — Specification
 
-Status: agreed project direction; implementation has not started.
-
 ## Goal
 
 Build a local command-line application in Kotlin that helps a learner view Moodle
@@ -62,7 +60,7 @@ Keep a small number of packages with clear responsibilities. Add classes as thei
 features are implemented, rather than creating empty placeholders.
 
 ```text
-src/main/kotlin/ch/diogoge/moodle/
+src/main/kotlin/moodle/
 ├── Main.kt       # Application entry point
 ├── cli/          # Command parsing and terminal output
 ├── config/       # Moodle URL and local settings
@@ -70,7 +68,7 @@ src/main/kotlin/ch/diogoge/moodle/
 ├── application/  # Workflows, filtering, sorting
 └── infrastructure/ # Retrofit API, DTOs, mapping, repository implementation
 
-src/test/kotlin/ch/diogoge/moodle/
+src/test/kotlin/moodle/
 ```
 
 A typical flow is `CLI -> service -> repository contract`. The Retrofit repository

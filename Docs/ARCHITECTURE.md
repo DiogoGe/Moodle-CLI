@@ -1,7 +1,5 @@
 # Architecture
 
-Status: agreed design direction; classes are introduced as features are implemented.
-
 ## Dependency boundaries
 
 Use one Gradle module with separate packages. The domain owns the models and the
