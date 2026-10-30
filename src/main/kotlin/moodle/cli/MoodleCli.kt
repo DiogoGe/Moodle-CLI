@@ -21,7 +21,7 @@ class MoodleCli(
             output(HELP)
             0
         }
-        args.size == 1 && args[0] in setOf("login", "doctor") -> accessCommand(args[0])
+        args.size == 1 && args[0] in setOf("login", "health") -> accessCommand(args[0])
         args.contentEquals(arrayOf("login", "--manual")) -> accessCommand("login-manual")
         args.contentEquals(arrayOf("courses")) -> showCourses()
         args.first() in PLANNED_COMMANDS -> usageError("${args.first()} is not implemented yet. See --help.")
@@ -49,13 +49,13 @@ class MoodleCli(
             Usage: moodle <command>
 
             --help                 Show help
-            doctor                 Check public API configuration
+            health                 Check public API configuration
             login                  Automatic callback in a separate private Chrome window
             login --manual         Copy the app callback from your normal browser
             courses                List courses (API integration pending)
 
             Planned: setup <url>, tasks [--course <id>], upcoming --days <n>
-            After login: doctor, logout, exit
+            After login: health, logout, exit
 
             Run login from the installed launcher in a terminal. No credentials are saved.
             """.trimIndent()

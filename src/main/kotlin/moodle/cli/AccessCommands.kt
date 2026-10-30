@@ -19,8 +19,8 @@ class AccessCommands(
     private val consoleProvider: () -> Console? = System::console
 ) {
     fun run(command: String): Int = when (command) {
-        "doctor" -> {
-            doctor()
+        "health" -> {
+            health()
             0
         }
         "login" -> login(manual = false)
@@ -28,7 +28,7 @@ class AccessCommands(
         else -> 2
     }
 
-    private fun doctor() {
+    private fun health() {
         showPublicStatus(service.getPublicStatus())
         val info = service.getAuthenticatedStatus()
         if (info == null) {
@@ -107,7 +107,7 @@ class AccessCommands(
     }
 
     private fun runSession(console: Console) {
-        output("Session is held in memory only. Commands: doctor, logout, exit.")
+        output("Session is held in memory only. Commands: health, logout, exit.")
         try {
             while (runSessionCommand(console.readLine("moodle> ")?.trim())) {
                 // Commands are handled individually; the session owns credential cleanup.
@@ -120,16 +120,16 @@ class AccessCommands(
     private fun runSessionCommand(command: String?): Boolean {
         when (command) {
             "logout", "exit", null -> return false
-            "doctor" -> runDoctorSafely()
+            "health" -> runHealthSafely()
             "" -> Unit
-            else -> output("Commands: doctor, logout, exit.")
+            else -> output("Commands: health, logout, exit.")
         }
         return true
     }
 
-    private fun runDoctorSafely() {
+    private fun runHealthSafely() {
         try {
-            doctor()
+            health()
         } catch (error: MoodleException) {
             output(error.message ?: "Moodle check failed.")
         }

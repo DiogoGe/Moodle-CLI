@@ -17,7 +17,7 @@ These commands describe the intended interface, not features already implemented
 | --- | --- |
 | `moodle setup <url>` | Validate and save the Moodle base URL locally. Use HTTPS for normal operation. |
 | `moodle login` | Authenticate through one method supported by the target instance. Hide secret input. |
-| `moodle doctor` | Report connection health, authentication status, and availability of required API functions. |
+| `moodle health` | Report connection health, authentication status, and availability of required API functions. |
 | `moodle courses` | List accessible enrolled courses with their IDs and names. |
 | `moodle tasks` | List accessible assignments with course, title, deadline when present, and submission status when available. |
 | `moodle tasks --course <id>` | Restrict results to the selected accessible course. |
@@ -120,7 +120,7 @@ clearly rather than presenting them as empty results.
 1. Set up Kotlin, Gradle Wrapper, dependencies, and the application entry point.
 2. Build successfully and provide command help.
 3. Display explicitly labelled sample courses to exercise the CLI structure.
-4. Connect to the real Moodle API, implement `doctor`, and replace sample data.
+4. Connect to the real Moodle API, implement `health`, and replace sample data.
 5. Implement course listing, assignments, submission statuses where available,
    and deadline filtering.
 6. Verify the MVP and document usage.

@@ -47,11 +47,11 @@ real terminal for hidden credential input:
 
 ```sh
 ./gradlew installDist
-./build/install/moodle/bin/moodle doctor
+./build/install/moodle/bin/moodle health
 ./build/install/moodle/bin/moodle login
 ```
 
-`doctor` checks the public Web Service configuration. `login` opens a separate
+`health` checks the public Web Service configuration. `login` opens a separate
 private Chrome/Chromium window on macOS or Linux. Complete the normal SWITCH login;
 the CLI receives the final app link automatically and closes that browser. Your
 normal browser profiles and the official ZHAW app link registration are not changed.
@@ -67,7 +67,7 @@ page and choose Copy Link. Paste it into the terminal's hidden prompt, not into 
 or a shell command. Use the link from the current login attempt.
 
 Both paths validate the callback against the current attempt and verify the token
-with `core_webservice_get_site_info`. The in-memory session accepts `doctor`,
+with `core_webservice_get_site_info`. The in-memory session accepts `health`,
 `logout`, and `exit`. Credentials are not saved between processes. A callback is
 single-use and expires after fifteen minutes; automatic browser waiting stops after
 ten minutes. Close the separate browser window or press Ctrl+C to cancel.

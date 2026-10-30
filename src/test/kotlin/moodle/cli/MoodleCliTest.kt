@@ -36,7 +36,7 @@ class MoodleCliTest {
     }
 
     @Test
-    fun `automatic and manual login dispatch explicitly`() {
+    fun `access commands dispatch explicitly`() {
         val calls = mutableListOf<String>()
         val cli = MoodleCli(
             MoodleService(UnavailableRepository(), Clock.systemUTC()),
@@ -47,7 +47,8 @@ class MoodleCliTest {
         )
         assertEquals(0, cli.run(arrayOf("login")))
         assertEquals(0, cli.run(arrayOf("login", "--manual")))
-        assertEquals(listOf("login", "login-manual"), calls)
+        assertEquals(0, cli.run(arrayOf("health")))
+        assertEquals(listOf("login", "login-manual", "health"), calls)
     }
 
     private class UnavailableRepository : MoodleRepository {
