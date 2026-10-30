@@ -4,7 +4,7 @@ import java.net.URI
 
 /** Non-secret connection settings. Credentials must be stored separately. */
 data class MoodleConfig(
-    val baseUrl: String,
+    val baseUrl: String
 ) {
     init {
         val uri = URI(baseUrl)

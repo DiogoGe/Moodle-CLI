@@ -22,7 +22,7 @@ class MoodleServiceTest {
                 assignment(2, null),
                 assignment(3, now.minusSeconds(1)),
                 assignment(4, now.plusSeconds(86_401)),
-                assignment(5, now),
+                assignment(5, now)
             )
         val service = MoodleService(FakeRepository(assignments), clock)
 
@@ -42,7 +42,7 @@ class MoodleServiceTest {
         val assignments =
             listOf(
                 assignment(1, now),
-                assignment(2, now).copy(courseId = 42),
+                assignment(2, now).copy(courseId = 42)
             )
         val service = MoodleService(FakeRepository(assignments), clock)
 
@@ -52,11 +52,11 @@ class MoodleServiceTest {
 
     private fun assignment(
         id: Long,
-        dueDate: Instant?,
+        dueDate: Instant?
     ): Assignment = Assignment(id = id, courseId = 1, name = "Task $id", dueDate = dueDate)
 
     private class FakeRepository(
-        private val assignments: List<Assignment>,
+        private val assignments: List<Assignment>
     ) : MoodleRepository {
         override fun getCourses(): List<Course> = emptyList()
 

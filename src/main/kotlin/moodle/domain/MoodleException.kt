@@ -1,9 +1,9 @@
 package moodle.domain
 
 sealed class MoodleException(
-    message: String,
+    message: String
 ) : RuntimeException(message) {
     class FeatureUnavailable(
-        feature: String,
+        feature: String
     ) : MoodleException("$feature is not implemented yet.")
 }

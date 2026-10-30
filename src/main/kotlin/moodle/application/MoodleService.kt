@@ -8,7 +8,7 @@ import java.time.temporal.ChronoUnit
 
 class MoodleService(
     private val repository: MoodleRepository,
-    private val clock: Clock,
+    private val clock: Clock
 ) {
     fun getCourses(): List<Course> = repository.getCourses()
 
@@ -19,10 +19,10 @@ class MoodleService(
         require(days > 0) { "Days must be greater than zero." }
         val now = clock.instant()
         val end = now.plus(days.toLong(), ChronoUnit.DAYS)
-        return repository.getAssignments()
+        return repository
+            .getAssignments()
             .filter { assignment ->
                 assignment.dueDate?.let { it >= now && it <= end } ?: false
-            }
-            .sortedBy { it.dueDate }
+            }.sortedBy { it.dueDate }
     }
 }

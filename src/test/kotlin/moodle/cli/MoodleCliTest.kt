@@ -28,7 +28,7 @@ class MoodleCliTest {
             MoodleCli(
                 MoodleService(UnavailableRepository(), Clock.systemUTC()),
                 output::add,
-                errors::add,
+                errors::add
             )
 
         assertEquals(1, cli.run(arrayOf("courses")))
