@@ -9,8 +9,7 @@ import moodle.domain.MoodleRepository
 class RetrofitMoodleRepository(
     private val api: MoodleApi,
 ) : MoodleRepository {
-    override fun getCourses(): List<Course> =
-        throw MoodleException.FeatureUnavailable("Course API integration")
+    override fun getCourses(): List<Course> = throw MoodleException.FeatureUnavailable("Course API integration")
 
     override fun getAssignments(): List<Assignment> =
         throw MoodleException.FeatureUnavailable("Assignment API integration")

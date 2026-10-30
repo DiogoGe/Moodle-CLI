@@ -24,11 +24,12 @@ class MoodleCliTest {
     fun `unavailable integration is reported as a failure instead of an empty course list`() {
         val output = mutableListOf<String>()
         val errors = mutableListOf<String>()
-        val cli = MoodleCli(
-            MoodleService(UnavailableRepository(), Clock.systemUTC()),
-            output::add,
-            errors::add,
-        )
+        val cli =
+            MoodleCli(
+                MoodleService(UnavailableRepository(), Clock.systemUTC()),
+                output::add,
+                errors::add,
+            )
 
         assertEquals(1, cli.run(arrayOf("courses")))
         assertTrue(output.isEmpty())
@@ -36,8 +37,8 @@ class MoodleCliTest {
     }
 
     private class UnavailableRepository : MoodleRepository {
-        override fun getCourses(): List<Course> =
-            throw MoodleException.FeatureUnavailable("Course API integration")
+        override fun getCourses(): List<Course> = throw MoodleException.FeatureUnavailable("Course API integration")
+
         override fun getAssignments(): List<Assignment> =
             throw MoodleException.FeatureUnavailable("Assignment API integration")
     }

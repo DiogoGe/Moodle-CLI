@@ -48,6 +48,6 @@ class MoodleCli(
                      upcoming --days <n>, logout
 
             No authentication or network requests are implemented yet.
-        """.trimIndent()
+            """.trimIndent()
     }
 }
