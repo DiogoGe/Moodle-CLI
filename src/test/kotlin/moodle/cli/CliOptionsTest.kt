@@ -45,4 +45,14 @@ class CliOptionsTest {
         assertEquals(1, cli.run(arrayOf("courses")))
         assertEquals("Melde dich zuerst mit login an.", errors.single())
     }
+
+    @Test
+    fun `memory-only mode combines with language options before the command`() {
+        val first = CliOptions.parse(arrayOf("--lang", "de", "--no-store", "login"))
+        val second = CliOptions.parse(arrayOf("--no-store", "--lang", "de", "login"))
+        assertEquals(first, second)
+        assertFalse(first.useKeychain)
+        assertEquals(listOf("login"), first.arguments)
+        assertTrue(CliOptions.parse(arrayOf("courses")).useKeychain)
+    }
 }

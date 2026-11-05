@@ -43,17 +43,25 @@ class MoodleCliTest {
         assertEquals(0, cli.run(arrayOf("login")))
         assertEquals(0, cli.run(arrayOf("login", "--manual")))
         assertEquals(0, cli.run(arrayOf("health")))
-        assertEquals(listOf("login", "login-manual", "health"), calls)
+        assertEquals(0, cli.run(arrayOf("logout")))
+        assertEquals(listOf("login", "login-manual", "health", "logout"), calls)
     }
 
     @Test
-    fun `tasks and upcoming dispatch with their arguments`() {
+    fun `assignment and quiz commands dispatch with their arguments`() {
         val calls = mutableListOf<List<String>>()
         val cli = MoodleCli(studyCommand = {
             calls.add(it)
             0
         })
-        val commands = listOf(listOf("tasks"), listOf("tasks", "--course", "42"), listOf("upcoming", "--days", "7"))
+        val commands = listOf(
+            listOf("tasks"),
+            listOf("tasks", "--course", "42"),
+            listOf("assignments", "--course", "42"),
+            listOf("quizzes"),
+            listOf("quizzes", "--course", "42"),
+            listOf("upcoming", "--days", "7")
+        )
         commands.forEach { assertEquals(0, cli.run(it.toTypedArray())) }
         assertEquals(commands, calls)
     }

@@ -7,6 +7,7 @@
 | Retrofit | Describe Moodle requests through Kotlin interfaces and execute them. |
 | kotlinx.serialization JSON | Convert JSON responses into Kotlin data classes. |
 | Retrofit kotlinx.serialization converter | Connect Retrofit response conversion to Kotlin serialization. |
+| JNA | Call the native macOS Keychain API without shell commands or secret command-line arguments. |
 | jsoup | Parse course HTML locally into readable terminal text without executing scripts or fetching resources. |
 | Kotlin Test with JUnit | Support automated tests. |
 
@@ -34,10 +35,11 @@ requirement justifies them.
 
 ## Credential storage
 
-The minimal dependency list does not resolve secure persistent token storage.
-Choose an operating-system credential-store integration when implementing
-persistent login; an additional library may be appropriate. Never treat ordinary
-configuration-file storage as secure storage for a token.
+The macOS adapter uses JNA and Apple's SecItem API. Native access is enabled in the
+generated launcher. The application does not depend on a generic keyring wrapper
+that might invoke external commands or select a fallback backend. Other operating
+systems currently use explicit memory-only mode. Never treat ordinary configuration
+files as secure credential storage.
 
 ## References
 

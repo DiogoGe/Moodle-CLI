@@ -39,7 +39,7 @@ internal class RetrofitMoodleAccess(private val api: MoodleApi, private val json
     }
 
     private fun loadSiteInfo(token: AccessToken): JsonObject {
-        val response = api.getSiteInfo(token.value).execute()
+        val response = api.getSiteInfo(token.value).executeMoodleRead()
         if (!response.isSuccessful) {
             throw MoodleException.Connection("error.api.authHttp", response.code())
         }

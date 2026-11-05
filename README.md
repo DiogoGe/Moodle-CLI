@@ -50,7 +50,7 @@ Swiss German), English otherwise. Override the language before the command:
 ./build/install/moodle/bin/moodle --lang en --help
 ```
 
-The selected language applies to the entire in-memory login session. Command names
+The selected language applies to the entire process and interactive login session. Command names
 such as `courses`, `read`, `download`, and `cancel` remain unchanged. Course content
 is displayed in its original language. Translations live in UTF-8 resource files
 under `src/main/resources/i18n`; English is the fallback language.
@@ -83,12 +83,44 @@ or a shell command. Use the link from the current login attempt.
 
 Both paths validate the callback against the current attempt and verify the token
 with `core_webservice_get_site_info`. The in-memory session accepts `courses`,
-`course`, `read`, `download`, `tasks`, `upcoming`, `health`, `logout`, and `exit`. Credentials are not saved between processes. A callback is
+`course`, `read`, `download`, `assignments` (or `tasks`), `quizzes`, `upcoming`, `health`, `logout`, and `exit`.
+On macOS, a verified login is saved in Keychain by default. A callback is
 single-use and expires after fifteen minutes; automatic browser waiting stops after
 ten minutes. Close the separate browser window or press Ctrl+C to cancel.
 
 Function exposure does not guarantee access to every course or activity.
 See [Authentication](Docs/AUTHENTICATION.md) for the security boundaries and browser requirements.
+
+## Saved login and logout
+
+On macOS, `login` saves the validated Moodle token in the login Keychain. Later
+commands restore and validate that token before retrieving private Moodle data:
+
+```sh
+./build/install/moodle/bin/moodle --lang de courses
+./build/install/moodle/bin/moodle --lang de quizzes --course 29614
+./build/install/moodle/bin/moodle --lang de upcoming --days 7
+./build/install/moodle/bin/moodle --lang de logout
+```
+
+`exit` closes the interactive process and keeps the saved login. `logout` clears
+process-local state and deletes this application's saved entry for the configured
+site. It does not revoke the token in Moodle. An expired or rejected saved token is
+removed; a temporary network error keeps it. Denied or unavailable Keychain access
+is reported without writing credentials to ordinary files.
+
+For an in-memory session, put `--no-store` before the command:
+
+```sh
+./build/install/moodle/bin/moodle --lang de --no-store login
+```
+
+This mode never reads, writes, or deletes Keychain entries. Other operating systems
+currently require this mode; their native credential-store adapters are not implemented.
+Keychain access uses Apple's native API directly through JNA, without placing the
+token in shell commands, process arguments, or clipboard contents. A shared JDK
+identity does not provide isolation from arbitrary code running as the same user;
+see [Authentication](Docs/AUTHENTICATION.md) for the boundary.
 
 ## Browse course materials
 
@@ -107,8 +139,8 @@ download 1234 5678 1 "./My Materials"
 activity. `read` displays the text of an activity, including the full HTML content
 of Moodle Page resources. HTML is parsed locally into plain text; scripts and
 terminal control characters are removed. Complex activities are listed but do not
-have a dedicated reader yet. These commands require the same running login session;
-a separate `moodle courses` process has no saved credentials.
+have a dedicated reader yet. These commands work in the interactive session or as
+standalone launcher commands after a login has been saved in Keychain.
 
 `download` selects a file by course ID, activity ID, and the file number displayed
 by `course`. It saves into `./downloads` by default, or the quoted directory you
@@ -120,15 +152,17 @@ enable file downloads for the mobile Web Service. Files are not opened automatic
 
 ## Assignments and deadlines
 
-Within the same running login session:
+Within the interactive login session (or as launcher commands after a saved login):
 
 ```text
-tasks
-tasks --course 1234
+assignments
+assignments --course 1234
+quizzes
+quizzes --course 1234
 upcoming --days 7
 ```
 
-`tasks` lists accessible Moodle Assignment activities with their IDs, course names,
+`assignments` (alias `tasks`) lists accessible Moodle Assignment activities with their IDs, course names,
 deadlines, and submission statuses. `--course` accepts a positive course ID from
 `courses`. `upcoming` requires a positive whole number of days and includes
 deadlines from now through that many 24-hour periods, sorted by deadline.
@@ -142,8 +176,17 @@ uses group submission status for group assignments, and applies returned persona
 extensions before filtering deadlines. Missing or inaccessible submission details
 are marked unknown; check personal extensions in Moodle when details are unavailable.
 Partial course or activity access is indicated explicitly. Network and authentication
-failures are reported as errors rather than as empty lists. Quiz and other activity
-types are outside this command's scope.
+failures are reported as errors rather than as empty lists. `upcoming` includes
+Assignment deadlines; quiz closing times are listed separately by `quizzes`.
+
+`quizzes` lists accessible quizzes and learning checks with their quiz ID, course ID,
+opening and closing times, and time limit per attempt. It supports the same positive
+`--course <id>` filter. The CLI uses `mod_quiz_get_quizzes_by_courses`; missing API
+permissions are reported explicitly. Incomplete timing is labelled unavailable;
+explicit zero values mean no corresponding restriction. A quiz's closing time is
+not presented as an Assignment submission deadline. This command reads metadata
+only and does not start, answer, finish, or retrieve questions from quiz attempts.
+Other activity types remain visible through `course <id>`.
 
 ## Structure
 

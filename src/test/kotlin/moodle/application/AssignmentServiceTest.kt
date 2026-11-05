@@ -7,7 +7,7 @@ import moodle.domain.entities.SubmissionDetails
 import moodle.domain.enums.SubmissionStatus
 import moodle.domain.exceptions.MoodleException
 import moodle.fixtures.FakeAssignmentRepository
-import moodle.fixtures.assignmentAccess
+import moodle.fixtures.authenticatedAccess
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
@@ -19,7 +19,7 @@ import kotlin.test.assertTrue
 class AssignmentServiceTest {
     private val now = Instant.parse("2026-11-05T10:00:00Z")
     private val clock = Clock.fixed(now, ZoneOffset.UTC)
-    private val access = assignmentAccess()
+    private val access = authenticatedAccess()
     private val repository = FakeAssignmentRepository(AssignmentList(emptyList()))
     private val service = AssignmentService(access, repository, clock)
 

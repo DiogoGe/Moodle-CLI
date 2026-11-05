@@ -22,9 +22,9 @@ class MoodleCli(
             output(messages.text("cli.help"))
             0
         }
-        args.size == 1 && args[0] in setOf("login", "health") -> accessCommand(args[0])
+        args.size == 1 && args[0] in setOf("login", "health", "logout") -> accessCommand(args[0])
         args.contentEquals(arrayOf("login", "--manual")) -> accessCommand("login-manual")
-        args.first() in setOf("courses", "course", "read", "download", "tasks", "upcoming") -> studyCommand(args.toList())
+        args.first() in STUDY_COMMANDS -> studyCommand(args.toList())
         args.first() in PLANNED_COMMANDS -> usageError(messages.text("error.cli.planned", args.first()))
         else -> usageError(messages.text("error.cli.usage"))
     }
@@ -35,6 +35,7 @@ class MoodleCli(
     }
 
     private companion object {
-        val PLANNED_COMMANDS = setOf("setup", "logout")
+        val STUDY_COMMANDS = setOf("courses", "course", "read", "download", "tasks", "assignments", "upcoming", "quizzes")
+        val PLANNED_COMMANDS = setOf("setup")
     }
 }

@@ -12,6 +12,7 @@ import moodle.domain.exceptions.MoodleException
 import moodle.domain.interfaces.CourseRepository
 import moodle.infrastructure.api.dtos.CourseDto
 import moodle.infrastructure.api.dtos.CourseSectionDto
+import moodle.infrastructure.api.executeMoodleRead
 import moodle.infrastructure.api.interfaces.MoodleApi
 import moodle.infrastructure.api.toDomain
 import retrofit2.Call
@@ -29,7 +30,7 @@ internal class RetrofitCourseRepository(private val api: MoodleApi, private val 
 
     private fun <T> load(call: Call<JsonElement>, decode: (JsonElement) -> T): T {
         try {
-            val response = call.execute()
+            val response = call.executeMoodleRead()
             if (!response.isSuccessful) throw MoodleException.Connection("error.api.http", response.code())
             val body = response.body() ?: throw MoodleException.Connection("error.api.emptyCourse")
             if (body is JsonObject) throw apiError(body)

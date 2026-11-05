@@ -8,7 +8,7 @@ import moodle.domain.entities.SubmissionDetails
 import moodle.domain.enums.SubmissionStatus
 import moodle.domain.exceptions.MoodleException
 import moodle.fixtures.FakeAssignmentRepository
-import moodle.fixtures.assignmentAccess
+import moodle.fixtures.authenticatedAccess
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
@@ -23,7 +23,7 @@ class AssignmentCommandsTest {
     private val now = Instant.parse("2026-11-05T10:00:00Z")
     private val clock = Clock.fixed(now, ZoneId.of("Europe/Zurich"))
     private val repository = FakeAssignmentRepository(AssignmentList(emptyList()))
-    private val service = AssignmentService(assignmentAccess(), repository, clock)
+    private val service = AssignmentService(authenticatedAccess(), repository, clock)
 
     @Test
     fun `German tasks show course local time unknown status and neutral past deadline markers`() {
@@ -70,6 +70,19 @@ class AssignmentCommandsTest {
         val output = mutableListOf<String>()
         AssignmentCommands(service, clock, output::add, Messages(Locale.ENGLISH)).run(listOf("tasks"))
         assertTrue(output.any { "2026-06-01 12:00 +02:00 (Europe/Zurich)" in it })
+    }
+
+    @Test
+    fun `assignments is an alias of tasks with the same course filter`() {
+        repository.result = AssignmentList(listOf(Assignment(1, 42, "Report", now)))
+        val output = mutableListOf<String>()
+        val commands = AssignmentCommands(service, clock, output::add, Messages(Locale.ENGLISH))
+        commands.run(listOf("tasks", "--course", "42"))
+        val expected = output.toList()
+        output.clear()
+        commands.run(listOf("assignments", "--course", "42"))
+        assertEquals(expected, output)
+        assertEquals(42L, repository.requestedCourse)
     }
 
     @Test

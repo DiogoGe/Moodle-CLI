@@ -8,7 +8,16 @@ Infrastructure implements it using Retrofit. The CLI handles input and presentat
 
 ```mermaid
 classDiagram
-    MoodleCli --> CourseCommands
+    MoodleCli --> StudyCommands
+    StudyCommands --> CourseCommands
+    StudyCommands --> AssignmentCommands
+    StudyCommands --> QuizCommands
+    QuizCommands --> QuizService
+    QuizService --> AccessService
+    QuizService --> QuizRepository
+    RetrofitQuizRepository ..|> QuizRepository
+    QuizRepository ..> Quiz
+    Quiz *-- QuizTiming
     CourseCommands --> CourseService
     CourseService --> AccessService
     CourseService --> CourseRepository
@@ -26,6 +35,11 @@ classDiagram
 `CourseService` handles authenticated course operations and selection of activities
 and files. `AccessService.withSession` supplies the verified user ID and in-memory
 token, and removes credentials when an operation reports expired authentication.
+`TokenStore` supplies an optional native persistence boundary. `AccessService`
+validates candidates before saving and verifies stored tokens before activating a
+session. `endSession` clears only process state; `logout` also removes persistence.
+The initial adapter, `MacKeychainTokenStore`, uses Apple's SecItem APIs through JNA;
+its Core Foundation dictionaries own and release their native references.
 `CourseRepository` and `CourseFiles` are replaceable boundaries. Application services
 do not depend on Retrofit, response DTOs, filesystem APIs, or terminal output.
 `AssignmentService` depends on `AssignmentRepository` and `AccessService` for
@@ -34,7 +48,14 @@ uses the capabilities recorded at login to skip unsupported status requests.
 `AssignmentList.partial` preserves API warnings without retaining their remote text.
 Individual extensions are applied before deadline filtering; `Clock` makes window
 boundaries and local-time presentation deterministic. `StudyCommands` dispatches
-course and assignment commands consistently in both CLI entry paths.
+course, assignment, and quiz commands consistently in both CLI entry paths.
+
+`QuizService` and `QuizRepository` keep quizzes separate from assignments.
+`RetrofitQuizRepository` reads quiz metadata without accessing attempt endpoints.
+`QuizTiming` distinguishes an unrestricted schedule from metadata that Moodle did
+not expose (`Quiz.timing == null`). `TerminalDates` provides the same local date,
+UTC offset, and zone formatting for both assignment and quiz commands. `assignments`
+is an alias of `tasks`; quiz closing times are not merged into `upcoming`.
 
 `RetrofitCourseRepository` maps course DTOs into domain models. `MoodleFileClient`
 restricts credential-bearing requests to the configured Moodle file endpoint and
@@ -93,8 +114,8 @@ and [data class documentation](https://kotlinlang.org/docs/data-classes.html).
 ## Scope
 
 Keep the initial design small: no interface for every class, generic base repository,
-or separate Gradle module per layer. Add credential storage and download boundaries
-when those features are implemented.
+or separate Gradle module per layer. Credential storage and downloads have their
+own replaceable boundaries without introducing additional application modules.
 
 ## Browser login responsibilities
 

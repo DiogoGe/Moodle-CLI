@@ -9,7 +9,7 @@ import moodle.domain.AccessToken
 import moodle.domain.entities.Assignment
 import moodle.domain.enums.SubmissionStatus
 import moodle.domain.exceptions.MoodleException
-import moodle.fixtures.assignmentAccess
+import moodle.fixtures.authenticatedAccess
 import moodle.infrastructure.api.createMoodleApi
 import moodle.infrastructure.api.repository.RetrofitAssignmentRepository
 import java.net.InetSocketAddress
@@ -144,7 +144,7 @@ class RetrofitAssignmentRepositoryTest {
     fun `task commands read actual HTTP fixtures through services and render localized output`() {
         withRepository(mapOf(LIST to ASSIGNMENTS, STATUS to GROUP_STATUS)) { repository, requests ->
             val clock = Clock.fixed(Instant.ofEpochSecond(1793872800), ZoneOffset.UTC)
-            val service = AssignmentService(assignmentAccess(), repository, clock)
+            val service = AssignmentService(authenticatedAccess(), repository, clock)
             val output = mutableListOf<String>()
             val commands = AssignmentCommands(service, clock, output::add, Messages(Locale.GERMAN))
             commands.run(listOf("tasks", "--course", "42"))

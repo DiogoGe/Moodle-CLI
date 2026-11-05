@@ -6,7 +6,7 @@ import moodle.domain.PublicStatus
 import moodle.domain.SiteInfo
 import moodle.domain.interfaces.MoodleAccess
 
-fun assignmentAccess(): AccessService {
+fun authenticatedAccess(): AccessService {
     val site = "https://moodle.example"
     val adapter = object : MoodleAccess {
         override fun getPublicStatus(): PublicStatus = error("Not needed")

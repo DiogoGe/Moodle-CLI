@@ -19,7 +19,8 @@ class AccessCommands(
     private val output: (String) -> Unit = ::println,
     private val consoleProvider: () -> Console? = System::console,
     private val studyCommand: (List<String>) -> Int = { throw MoodleException.FeatureUnavailable("courses") },
-    private val messages: Messages = Messages()
+    private val messages: Messages = Messages(),
+    private val persistent: Boolean = false
 ) {
     fun run(command: String): Int = when (command) {
         "health" -> {
@@ -28,6 +29,7 @@ class AccessCommands(
         }
         "login" -> login(manual = false)
         "login-manual" -> login(manual = true)
+        "logout" -> logout()
         else -> 2
     }
 
@@ -51,8 +53,10 @@ class AccessCommands(
 
     private fun login(manual: Boolean): Int {
         val console = requireConsole()
+        service.checkStorage()
         checkLoginAvailability()
         if (manual) manualLogin(console) else automaticLogin()
+        output(messages.text(if (persistent) "login.saved" else "login.memoryOnly"))
         runSession(console)
         return 0
     }
@@ -117,13 +121,17 @@ class AccessCommands(
                 // Commands are handled individually; the session owns credential cleanup.
             }
         } finally {
-            service.logout()
+            service.endSession()
         }
     }
 
     private fun runSessionCommand(command: String?): Boolean {
         when (command) {
-            "logout", "exit", null -> return false
+            "logout" -> {
+                logout()
+                return false
+            }
+            "exit", null -> return false
             "" -> Unit
             else -> runSessionSafely(command)
         }
@@ -137,6 +145,12 @@ class AccessCommands(
         } catch (error: MoodleException) {
             output(messages.error(error))
         }
+    }
+
+    private fun logout(): Int {
+        service.logout()
+        output(messages.text(if (persistent) "login.forgotten" else "login.loggedOut"))
+        return 0
     }
 
     private fun showSiteInfo(info: SiteInfo) {
@@ -153,6 +167,7 @@ class AccessCommands(
         val REQUIRED_FUNCTIONS = mapOf(
             "feature.courses" to "core_enrol_get_users_courses",
             "feature.contents" to "core_course_get_contents",
+            "feature.quizzes" to "mod_quiz_get_quizzes_by_courses",
             "feature.assignments" to "mod_assign_get_assignments",
             "feature.submissions" to "mod_assign_get_submission_status"
         )

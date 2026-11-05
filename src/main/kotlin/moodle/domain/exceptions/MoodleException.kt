@@ -6,6 +6,8 @@ sealed class MoodleException(val messageKey: String, vararg arguments: Any) : Ru
 
     class Input(key: String, vararg arguments: Any) : MoodleException(key, *arguments)
 
+    class Credentials(key: String, vararg arguments: Any) : MoodleException(key, *arguments)
+
     class Permission(key: String, vararg arguments: Any) : MoodleException(key, *arguments)
 
     class Download(key: String, vararg arguments: Any) : MoodleException(key, *arguments)

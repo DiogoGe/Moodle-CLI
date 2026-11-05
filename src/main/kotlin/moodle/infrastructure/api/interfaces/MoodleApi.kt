@@ -58,4 +58,13 @@ internal interface MoodleApi {
         @Field("wsfunction") function: String = "mod_assign_get_submission_status",
         @Field("moodlewsrestformat") format: String = "json"
     ): Call<JsonElement>
+
+    @FormUrlEncoded
+    @POST("webservice/rest/server.php")
+    fun getQuizzes(
+        @Field("wstoken") token: String,
+        @FieldMap courseIds: Map<String, String>,
+        @Field("wsfunction") function: String = "mod_quiz_get_quizzes_by_courses",
+        @Field("moodlewsrestformat") format: String = "json"
+    ): Call<JsonElement>
 }

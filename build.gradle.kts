@@ -12,6 +12,7 @@ repositories {
 }
 
 dependencies {
+    implementation(libs.jna)
     implementation(libs.jsoup)
     implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)
@@ -27,11 +28,14 @@ kotlin {
 application {
     mainClass = "moodle.MainKt"
     applicationName = "moodle"
+    applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED")
 }
 
 tasks.test {
     inputs.property("chromeIntegration", providers.environmentVariable("MOODLE_CHROME_TESTS").orElse("false"))
     useJUnitPlatform()
+    inputs.property("keychainIntegration", providers.environmentVariable("MOODLE_KEYCHAIN_TESTS").orElse("false"))
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
 }
 
 ktlint {

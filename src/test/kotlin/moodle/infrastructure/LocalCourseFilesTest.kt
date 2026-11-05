@@ -34,7 +34,8 @@ class LocalCourseFilesTest {
         withServer("replacement") { files, base, directory, _ ->
             val target = directory.resolve("test.pdf")
             Files.writeString(target, "original")
-            assertFailsWith<MoodleException.Download> { files.download(token, file(base), directory.toString()) }
+            val error = assertFailsWith<MoodleException.Download> { files.download(token, file(base), directory.toString()) }
+            assertEquals("error.download.exists", error.messageKey)
             assertEquals("original", Files.readString(target))
             Files.createSymbolicLink(directory.resolve("link.pdf"), target)
             assertFailsWith<MoodleException.Download> {

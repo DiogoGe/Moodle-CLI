@@ -7,8 +7,6 @@ import moodle.domain.entities.AssignmentList
 import moodle.domain.enums.SubmissionStatus
 import moodle.domain.exceptions.MoodleException
 import java.time.Clock
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 class AssignmentCommands(
     private val service: AssignmentService,
@@ -17,12 +15,13 @@ class AssignmentCommands(
     private val messages: Messages = Messages()
 ) {
     private val text = TerminalText()
-    private val dates = DateTimeFormatter.ofPattern(messages.text("tasks.datePattern"), Locale.ROOT).withZone(clock.zone)
+    private val dates = TerminalDates(clock, messages)
 
     fun run(args: List<String>): Int {
+        val assignments = args.firstOrNull() in setOf("tasks", "assignments")
         val result = when {
-            args == listOf("tasks") -> service.getAssignments()
-            args.size == 3 && args.take(2) == listOf("tasks", "--course") -> service.getAssignments(courseId(args[2]))
+            assignments && args.size == 1 -> service.getAssignments()
+            assignments && args.size == 3 && args[1] == "--course" -> service.getAssignments(courseId(args[2]))
             args.size == 3 && args.take(2) == listOf("upcoming", "--days") -> service.getUpcoming(days(args[2]))
             else -> throw MoodleException.Input("error.tasks.usage")
         }

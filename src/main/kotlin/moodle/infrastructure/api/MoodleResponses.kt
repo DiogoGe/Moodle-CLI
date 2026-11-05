@@ -11,19 +11,23 @@ import java.io.IOException
 import java.time.DateTimeException
 
 /** Decode a REST response without exposing response bodies, request credentials, or transport exception messages. */
-internal fun <T> Call<JsonElement>.readMoodle(responseKey: String, decode: (JsonElement) -> T): T {
+internal fun <T> Call<JsonElement>.readMoodle(
+    responseKey: String,
+    permissionKey: String = "error.api.assignmentAccess",
+    decode: (JsonElement) -> T
+): T {
     try {
-        val response = execute()
+        val response = executeMoodleRead()
         if (!response.isSuccessful) {
             response.errorBody()?.close()
             when (response.code()) {
                 401 -> throw MoodleException.Authentication("error.session.expired")
-                403 -> throw MoodleException.Permission("error.api.assignmentAccess")
+                403 -> throw MoodleException.Permission(permissionKey)
                 else -> throw MoodleException.Connection("error.api.http", response.code())
             }
         }
         val body = response.body() ?: throw MoodleException.Connection("error.api.empty")
-        if (body is JsonObject) checkMoodleError(body, responseKey)
+        if (body is JsonObject) checkMoodleError(body, responseKey, permissionKey)
         return decode(body)
     } catch (_: IOException) {
         throw MoodleException.Connection("error.api.connection")
@@ -36,13 +40,13 @@ internal fun <T> Call<JsonElement>.readMoodle(responseKey: String, decode: (Json
     }
 }
 
-private fun checkMoodleError(body: JsonObject, responseKey: String) {
+private fun checkMoodleError(body: JsonObject, responseKey: String, permissionKey: String) {
     if ("exception" !in body && "errorcode" !in body) return
     val code = (body["errorcode"] as? JsonPrimitive)?.contentOrNull
     when (code) {
         "invalidtoken", "requireloginerror" -> throw MoodleException.Authentication("error.session.expired")
         "accessexception", "nopermission", "nopermissions", "required_capability_exception" ->
-            throw MoodleException.Permission("error.api.assignmentAccess")
+            throw MoodleException.Permission(permissionKey)
         else -> throw MoodleException.Connection(responseKey)
     }
 }

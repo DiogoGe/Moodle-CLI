@@ -16,16 +16,19 @@ These commands describe the intended interface, not features already implemented
 | Command | Purpose and acceptance criteria |
 | --- | --- |
 | `moodle setup <url>` | Validate and save the Moodle base URL locally. Use HTTPS for normal operation. |
-| `moodle login` | Authenticate through one method supported by the target instance. Hide secret input. |
+| `moodle login` | Authenticate through a supported method and save the verified token in macOS Keychain. Hide secret input. |
 | `moodle health` | Report connection health, authentication status, and availability of required API functions. |
 | `moodle courses` | List accessible enrolled courses with their IDs and names. |
 | `course <id>` | Within the login session, display sections, activity descriptions, inline text, and numbered files. |
 | `read <course-id> <module-id>` | Display activity text, including the full content of Moodle Page resources, as plain text. |
 | `download <course-id> <module-id> <file-number> [directory]` | Download one listed file without overwriting existing files. |
+| `moodle assignments` | Alias of `tasks`; list Moodle Assignment activities separately from quizzes. |
+| `moodle quizzes [--course <id>]` | List quizzes and learning checks separately, with IDs and available opening, closing, and time-limit metadata. |
 | `moodle tasks` | List accessible assignments with course, title, deadline when present, and submission status when available. |
 | `moodle tasks --course <id>` | Restrict results to the selected accessible course. |
 | `moodle upcoming --days 7` | Show assignments due within the requested period, ordered by deadline. Reject invalid day counts. |
-| `moodle logout` | Remove locally stored credentials. Do not claim to revoke the token on the server. |
+| `moodle logout` | Clear process state and remove this application's Keychain entry for the configured site. Do not claim server-side token revocation. |
+| `moodle --no-store login` | Use process memory only; never read, write, or delete persisted credentials. |
 | `moodle --help` | Explain commands and options with examples. |
 | `moodle --lang de\|en <command>` | Override the system language for all messages in the process and login session. |
 
@@ -38,7 +41,11 @@ The window uses elapsed 24-hour days and includes both boundaries. Apply returne
 personal extensions before filtering, and use team submission status for group
 assignments. Missing optional status access must not hide accessible assignments;
 keep it unknown. Mark partial API results and never echo remote warning messages.
-These commands cover Moodle Assignment activities, not quizzes or all activity types.
+`tasks`/`assignments` and `upcoming` cover Moodle Assignment activities. `quizzes`
+provides a separate quiz list using `mod_quiz_get_quizzes_by_courses`, optionally
+filtered by course. Mark missing timing as unknown; only explicit zero values mean
+no restriction. Quiz listing must not create, answer, finish, or fetch questions
+from attempts. Other activity types remain available through the course overview.
 
 ## Next milestone: course materials
 
@@ -102,10 +109,12 @@ for the class diagram and Kotlin conventions.
 - Build through the Gradle Wrapper and document setup and usage.
 - Verify on the development machine first; test other platforms explicitly later.
 
-Persistent authentication needs secure credential storage. The preferred destination
-is the operating-system credential store; the implementation and any additional
-library remain to be decided. Initial API experiments may use a token held only in
-process memory. Do not silently fall back to saving secrets in a plain-text file.
+Persistent authentication uses macOS Keychain through a native adapter. Validate
+the token's site before saving and before restoring private access. `exit` keeps a
+saved login; `logout` removes it locally. Keep saved credentials on connection
+failures, but remove expired or rejected tokens. Store failures are explicit errors,
+never a plain-text or silent in-memory fallback. `--no-store` explicitly selects
+memory-only operation and is required on other platforms until native adapters exist.
 
 ## Moodle integration
 
@@ -141,4 +150,4 @@ clearly rather than presenting them as empty results.
 
 - Target Moodle URL and available API authentication method.
 - API functions available to the account.
-- Secure persistent credential storage implementation.
+- Native credential-store adapters for platforms other than macOS.

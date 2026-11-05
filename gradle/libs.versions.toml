@@ -7,7 +7,10 @@ kotlinx-serialization = "1.11.0"
 junit-platform = "1.14.0"
 jsoup = "1.23.2"
 
+jna = "5.19.1"
+
 [libraries]
+jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 retrofit-kotlinx-serialization = { module = "com.squareup.retrofit2:converter-kotlinx-serialization", version.ref = "retrofit" }

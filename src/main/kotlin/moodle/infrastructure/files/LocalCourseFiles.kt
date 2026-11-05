@@ -6,6 +6,7 @@ import moodle.domain.entities.DownloadedFile
 import moodle.domain.exceptions.MoodleException
 import moodle.domain.interfaces.CourseFiles
 import java.io.InputStream
+import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
@@ -34,7 +35,11 @@ internal class LocalCourseFiles(private val client: MoodleFileClient) : CourseFi
 
     private fun save(input: InputStream, target: Path): DownloadedFile {
         // CREATE_NEW also rejects existing symlinks. Delete only the file this invocation created if transfer fails.
-        val output = Files.newOutputStream(target, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
+        val output = try {
+            Files.newOutputStream(target, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
+        } catch (_: FileAlreadyExistsException) {
+            throw MoodleException.Download("error.download.exists")
+        }
         try {
             val bytes = output.use { stream ->
                 var total = 0L
