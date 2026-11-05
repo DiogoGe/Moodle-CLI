@@ -75,3 +75,10 @@ tasks.shadowJar {
 tasks.assemble {
     dependsOn(tasks.shadowJar)
 }
+
+// Carry the project's license alongside dependency notices in each application JAR.
+tasks.withType<Jar>().configureEach {
+    from(layout.projectDirectory.file("LICENSE")) {
+        into("META-INF/moodle-cli")
+    }
+}

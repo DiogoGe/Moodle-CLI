@@ -3,6 +3,10 @@
 A Kotlin command-line project for accessing Moodle courses, assignments, deadlines,
 and course materials. Built as a practical study tool and a Kotlin learning project.
 
+This is an unofficial student project. It is not affiliated with, endorsed by, or
+supported by ZHAW or Moodle. Each user signs in with their own account; access is
+limited to the permissions granted by their Moodle instance.
+
 ## Scope
 
 The target is a local, read-only tool for one user and one Moodle instance:
@@ -253,3 +257,15 @@ secure credential storage.
 - [Dependencies](Docs/DEPENDENCIES.md): library choices and rationale.
 
 This is an independent project and is not affiliated with Moodle or Moodle HQ.
+
+## License and contributions
+
+The project is licensed under the [MIT License](LICENSE). Dependencies retain their
+own licenses; their notices are included in the standalone JAR.
+
+Contributions are welcome through pull requests. The maintainer reviews and decides
+which changes to merge. A public repository and its license do not grant direct
+write access to this repository; that requires an explicit GitHub permission.
+
+Never include Moodle tokens, app callback links, passwords, personal account data,
+or non-public course materials in issues, pull requests, screenshots, or test fixtures.
