@@ -61,7 +61,11 @@ internal class LocalCourseFiles(private val client: MoodleFileClient) : CourseFi
     }
 
     private fun validateFileName(name: String) {
-        val unsafe = name.isBlank() || name in setOf(".", "..") || name.any { it.isISOControl() || it in "\\/:*?\"<>|" }
+        val deviceName = name.substringBefore('.').trimEnd(' ').uppercase(java.util.Locale.ROOT)
+        val reserved = deviceName in setOf("CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$") ||
+            Regex("(?:COM|LPT)[1-9¹²³]").matches(deviceName)
+        val unsafe =
+            reserved || name.isBlank() || name in setOf(".", "..") || name.any { it.isISOControl() || it in "\\/:*?\"<>|" }
         if (unsafe || name.endsWith('.') || name.endsWith(' ')) {
             throw MoodleException.Download("error.download.unsafeName")
         }

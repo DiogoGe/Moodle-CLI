@@ -40,6 +40,43 @@ On Windows, use `gradlew.bat`. To generate a local launcher:
 ./build/install/moodle/bin/moodle --help
 ```
 
+For Windows PowerShell, use the generated batch launcher:
+
+```powershell
+.\gradlew.bat installDist
+.\build\install\moodle\bin\moodle.bat --lang de login
+.\build\install\moodle\bin\moodle.bat --lang de courses
+```
+
+Automatic login discovers Google Chrome installed system-wide or for the current
+Windows user. Run the CLI as your normal user in a terminal. Java is still required;
+release packaging with a bundled runtime is a separate step.
+
+## Standalone JAR
+
+Build a single executable JAR containing the application, Kotlin runtime, and all
+runtime dependencies:
+
+```sh
+./gradlew shadowJar
+java -jar build/libs/moodle.jar --lang de login
+```
+
+On Windows PowerShell:
+
+```powershell
+.\gradlew.bat shadowJar
+java -jar .\build\libs\moodle.jar --lang de login
+```
+
+Share `build/libs/moodle.jar`; recipients do not need Kotlin, Gradle, or the source
+repository. They still need Java matching the toolchain in `gradle.properties` and
+Chrome for automatic login. Start the CLI from a terminal so hidden login input
+is available. Native access is enabled by the executable JAR manifest. The same
+JAR contains the macOS and Windows adapters; Linux requires `--no-store`.
+`build` also creates this JAR. This artifact does not contain a Java runtime or
+any local credentials, downloaded course files, or browser profiles.
+
 ## Language
 
 Messages and help follow the system language: German for German locales (including
@@ -67,7 +104,7 @@ real terminal for hidden credential input:
 ```
 
 `health` checks the public Web Service configuration. `login` opens a separate
-private Chrome/Chromium window on macOS or Linux. Complete the normal SWITCH login;
+private Chrome/Chromium window on macOS, Linux, or Windows. Complete the normal SWITCH login;
 the CLI receives the final app link automatically and closes that browser. Your
 normal browser profiles and the official ZHAW app link registration are not changed.
 
@@ -84,7 +121,7 @@ or a shell command. Use the link from the current login attempt.
 Both paths validate the callback against the current attempt and verify the token
 with `core_webservice_get_site_info`. The in-memory session accepts `courses`,
 `course`, `read`, `download`, `assignments` (or `tasks`), `quizzes`, `upcoming`, `health`, `logout`, and `exit`.
-On macOS, a verified login is saved in Keychain by default. A callback is
+On macOS and Windows, a verified login is saved in the OS credential store by default. A callback is
 single-use and expires after fifteen minutes; automatic browser waiting stops after
 ten minutes. Close the separate browser window or press Ctrl+C to cancel.
 
@@ -93,8 +130,8 @@ See [Authentication](Docs/AUTHENTICATION.md) for the security boundaries and bro
 
 ## Saved login and logout
 
-On macOS, `login` saves the validated Moodle token in the login Keychain. Later
-commands restore and validate that token before retrieving private Moodle data:
+`login` saves the validated Moodle token in macOS Keychain or Windows Credential
+Manager. Later commands restore and validate that token before retrieving private Moodle data:
 
 ```sh
 ./build/install/moodle/bin/moodle --lang de courses
@@ -106,7 +143,7 @@ commands restore and validate that token before retrieving private Moodle data:
 `exit` closes the interactive process and keeps the saved login. `logout` clears
 process-local state and deletes this application's saved entry for the configured
 site. It does not revoke the token in Moodle. An expired or rejected saved token is
-removed; a temporary network error keeps it. Denied or unavailable Keychain access
+removed; a temporary network error keeps it. Denied or unavailable credential-store access
 is reported without writing credentials to ordinary files.
 
 For an in-memory session, put `--no-store` before the command:
@@ -115,9 +152,9 @@ For an in-memory session, put `--no-store` before the command:
 ./build/install/moodle/bin/moodle --lang de --no-store login
 ```
 
-This mode never reads, writes, or deletes Keychain entries. Other operating systems
-currently require this mode; their native credential-store adapters are not implemented.
-Keychain access uses Apple's native API directly through JNA, without placing the
+This mode never reads, writes, or deletes saved credentials. Linux currently requires
+this mode because its native credential-store adapter is not implemented.
+Credential storage uses native OS APIs directly through JNA, without placing the
 token in shell commands, process arguments, or clipboard contents. A shared JDK
 identity does not provide isolation from arbitrary code running as the same user;
 see [Authentication](Docs/AUTHENTICATION.md) for the boundary.
@@ -140,7 +177,7 @@ activity. `read` displays the text of an activity, including the full HTML conte
 of Moodle Page resources. HTML is parsed locally into plain text; scripts and
 terminal control characters are removed. Complex activities are listed but do not
 have a dedicated reader yet. These commands work in the interactive session or as
-standalone launcher commands after a login has been saved in Keychain.
+standalone launcher commands after a login has been saved in the OS credential store.
 
 `download` selects a file by course ID, activity ID, and the file number displayed
 by `course`. It saves into `./downloads` by default, or the quoted directory you

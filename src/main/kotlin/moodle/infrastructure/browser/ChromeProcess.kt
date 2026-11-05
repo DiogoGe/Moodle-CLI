@@ -1,14 +1,14 @@
 package moodle.infrastructure.browser
 
 import moodle.domain.exceptions.MoodleException
+import moodle.infrastructure.windows.WindowsChromeTransport
+import java.nio.file.FileSystemException
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.attribute.PosixFilePermissions
-import java.util.concurrent.TimeUnit
 
 /** Owns exactly one temporary Chrome process, its private pipes, and its disposable profile. */
 internal class ChromeProcess private constructor(
-    private val process: Process,
+    private val process: ChromeTransport,
     val connection: ChromePipe,
     private val profile: Path,
     private val onCleanupFailure: () -> Unit
@@ -41,12 +41,11 @@ internal class ChromeProcess private constructor(
     }
 
     private fun stopProcess() {
-        val children: List<ProcessHandle> = process.descendants().use { it.toList() }
-        connection.close()
-        process.destroy()
-        if (!process.waitFor(3, TimeUnit.SECONDS)) process.destroyForcibly()
-        children.filter { it.isAlive }.forEach { it.destroyForcibly() }
-        check(process.waitFor(3, TimeUnit.SECONDS)) { "Browser did not exit" }
+        try {
+            process.close()
+        } finally {
+            connection.close()
+        }
     }
 
     private fun closeAtShutdown() {
@@ -64,61 +63,50 @@ internal class ChromeProcess private constructor(
             profileParent: Path?,
             onCleanupFailure: () -> Unit
         ): ChromeProcess {
-            val profile = createProfile(profileParent)
-            var process: Process? = null
+            val profile = createPrivateBrowserProfile(profileParent)
+            var process: ChromeTransport? = null
             try {
                 process = launch(executable, profile, headless)
-                val connection = ChromePipe(process.inputStream, process.outputStream)
+                val connection = ChromePipe(process.input, process.output)
                 return ChromeProcess(process, connection, profile, onCleanupFailure)
-            } catch (error: Exception) {
-                process?.destroyForcibly()
-                deleteProfile(profile)
+            } catch (error: Throwable) {
+                try {
+                    process?.close()
+                } finally {
+                    deleteProfile(profile)
+                }
                 throw error
             }
         }
 
-        fun findExecutable(): Path {
-            val candidates = listOf(
-                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-                "/usr/bin/google-chrome",
-                "/usr/bin/google-chrome-stable",
-                "/usr/bin/chromium",
-                "/usr/bin/chromium-browser"
-            )
-            return candidates.map(Path::of).firstOrNull { Files.isExecutable(it) }
-                ?: throw MoodleException.Authentication(
-                    "error.browser.missing"
-                )
-        }
+        fun findExecutable(): Path = findChromeExecutable()
 
-        private fun createProfile(parent: Path?): Path {
-            val permissions = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"))
-            return if (parent == null) {
-                Files.createTempDirectory("moodle-cli-login-", permissions)
-            } else {
-                Files.createTempDirectory(parent, "moodle-cli-login-", permissions)
-            }
-        }
-
-        private fun launch(executable: Path, profile: Path, headless: Boolean): Process {
-            // Fixed shell code only; paths are separate positional arguments, never interpolated shell text.
-            // Chrome reads fd 3 and writes fd 4. No debugging TCP listener is opened.
-            val bridge = """exec 3<&0 4>&1; exec "${'$'}@" </dev/null >/dev/null"""
+        private fun launch(executable: Path, profile: Path, headless: Boolean): ChromeTransport {
             val arguments = mutableListOf(
-                "/bin/sh", "-c", bridge, "moodle-login", executable.toString(),
-                "--remote-debugging-pipe", "--user-data-dir=$profile", "--no-startup-window",
+                executable.toString(), "--remote-debugging-pipe", "--user-data-dir=$profile", "--no-startup-window",
                 "--no-first-run", "--no-default-browser-check", "--disable-sync", "--disable-background-networking",
                 "--disable-extensions", "--disable-logging", "--disable-breakpad", "--disable-crash-reporter"
             )
             if (headless) arguments.add("--headless=new")
-            val builder = ProcessBuilder(arguments).redirectError(ProcessBuilder.Redirect.DISCARD)
-            builder.environment().remove("CHROME_LOG_FILE")
-            return builder.start()
+            return if (System.getProperty("os.name").startsWith("Windows", ignoreCase = true)) {
+                WindowsChromeTransport.start(arguments)
+            } else {
+                UnixChromeTransport(arguments)
+            }
         }
 
         private fun deleteProfile(profile: Path) {
-            Files.walk(profile).use { paths ->
-                paths.sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
+            repeat(10) { attempt ->
+                try {
+                    if (!Files.exists(profile)) return
+                    Files.walk(profile).use { paths ->
+                        paths.sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
+                    }
+                    return
+                } catch (error: FileSystemException) {
+                    if (!System.getProperty("os.name").startsWith("Windows") || attempt == 9) throw error
+                    Thread.sleep(100)
+                }
             }
         }
     }

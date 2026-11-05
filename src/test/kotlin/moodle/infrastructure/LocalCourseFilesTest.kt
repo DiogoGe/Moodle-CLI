@@ -30,14 +30,27 @@ class LocalCourseFilesTest {
     }
 
     @Test
-    fun `existing files and symlinks are never overwritten`() {
+    fun `existing files are never overwritten`() {
         withServer("replacement") { files, base, directory, _ ->
             val target = directory.resolve("test.pdf")
             Files.writeString(target, "original")
             val error = assertFailsWith<MoodleException.Download> { files.download(token, file(base), directory.toString()) }
             assertEquals("error.download.exists", error.messageKey)
             assertEquals("original", Files.readString(target))
-            Files.createSymbolicLink(directory.resolve("link.pdf"), target)
+        }
+    }
+
+    @Test
+    fun `existing symlinks are never overwritten`() {
+        withServer("replacement") { files, base, directory, _ ->
+            val target = Files.writeString(directory.resolve("test.pdf"), "original")
+            try {
+                Files.createSymbolicLink(directory.resolve("link.pdf"), target)
+            } catch (_: java.nio.file.FileSystemException) {
+                org.junit.jupiter.api.Assumptions
+                    .assumeFalse(System.getProperty("os.name").startsWith("Windows"))
+                error("Symbolic link fixture unavailable")
+            }
             assertFailsWith<MoodleException.Download> {
                 files.download(token, file(base).copy(name = "link.pdf"), directory.toString())
             }
@@ -48,7 +61,7 @@ class LocalCourseFilesTest {
     @Test
     fun `unsafe filenames and untrusted endpoints are refused before any request`() {
         withServer("unused") { files, base, directory, requests ->
-            for (name in listOf("../escape", "a/b", "a\\b", ".", "bad\u001b.pdf")) {
+            for (name in listOf("../escape", "a/b", "a\\b", ".", "bad\u001b.pdf", "NUL.pdf", "con", "COM1.txt", "lpt².pdf")) {
                 assertFailsWith<MoodleException.Download> {
                     files.download(token, file(base).copy(name = name), directory.toString())
                 }

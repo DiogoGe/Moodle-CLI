@@ -16,7 +16,7 @@ These commands describe the intended interface, not features already implemented
 | Command | Purpose and acceptance criteria |
 | --- | --- |
 | `moodle setup <url>` | Validate and save the Moodle base URL locally. Use HTTPS for normal operation. |
-| `moodle login` | Authenticate through a supported method and save the verified token in macOS Keychain. Hide secret input. |
+| `moodle login` | Authenticate through a supported method and save the verified token in the OS credential store. Hide secret input. |
 | `moodle health` | Report connection health, authentication status, and availability of required API functions. |
 | `moodle courses` | List accessible enrolled courses with their IDs and names. |
 | `course <id>` | Within the login session, display sections, activity descriptions, inline text, and numbered files. |
@@ -27,7 +27,7 @@ These commands describe the intended interface, not features already implemented
 | `moodle tasks` | List accessible assignments with course, title, deadline when present, and submission status when available. |
 | `moodle tasks --course <id>` | Restrict results to the selected accessible course. |
 | `moodle upcoming --days 7` | Show assignments due within the requested period, ordered by deadline. Reject invalid day counts. |
-| `moodle logout` | Clear process state and remove this application's Keychain entry for the configured site. Do not claim server-side token revocation. |
+| `moodle logout` | Clear process state and remove this application's saved credential for the configured site. Do not claim server-side token revocation. |
 | `moodle --no-store login` | Use process memory only; never read, write, or delete persisted credentials. |
 | `moodle --help` | Explain commands and options with examples. |
 | `moodle --lang de\|en <command>` | Override the system language for all messages in the process and login session. |
@@ -109,12 +109,12 @@ for the class diagram and Kotlin conventions.
 - Build through the Gradle Wrapper and document setup and usage.
 - Verify on the development machine first; test other platforms explicitly later.
 
-Persistent authentication uses macOS Keychain through a native adapter. Validate
+Persistent authentication uses macOS Keychain or Windows Credential Manager through native adapters. Validate
 the token's site before saving and before restoring private access. `exit` keeps a
 saved login; `logout` removes it locally. Keep saved credentials on connection
 failures, but remove expired or rejected tokens. Store failures are explicit errors,
 never a plain-text or silent in-memory fallback. `--no-store` explicitly selects
-memory-only operation and is required on other platforms until native adapters exist.
+memory-only operation and is required on Linux until a native adapter exists.
 
 ## Moodle integration
 
@@ -150,4 +150,4 @@ clearly rather than presenting them as empty results.
 
 - Target Moodle URL and available API authentication method.
 - API functions available to the account.
-- Native credential-store adapters for platforms other than macOS.
+- A native credential-store adapter for Linux.

@@ -22,7 +22,7 @@ import moodle.infrastructure.api.repository.RetrofitAssignmentRepository
 import moodle.infrastructure.api.repository.RetrofitCourseRepository
 import moodle.infrastructure.api.repository.RetrofitQuizRepository
 import moodle.infrastructure.browser.IsolatedChromeLoginBrowser
-import moodle.infrastructure.credentials.MacKeychainTokenStore
+import moodle.infrastructure.credentials.platformTokenStore
 import moodle.infrastructure.files.LocalCourseFiles
 import moodle.infrastructure.files.MoodleFileClient
 import java.time.Clock
@@ -46,7 +46,7 @@ private fun createCli(messages: Messages, useKeychain: Boolean): MoodleCli {
         encodeDefaults = true
     }
     val api = createMoodleApi(config.baseUrl, json)
-    val tokens = if (useKeychain) MacKeychainTokenStore() else null
+    val tokens = if (useKeychain) platformTokenStore() else null
     val access = AccessService(RetrofitMoodleAccess(api, json), config.baseUrl, tokens)
     val courseService = CourseService(
         access,

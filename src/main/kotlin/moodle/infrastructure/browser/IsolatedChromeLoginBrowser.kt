@@ -25,6 +25,8 @@ internal class IsolatedChromeLoginBrowser(
         } catch (_: InterruptedException) {
             Thread.currentThread().interrupt()
             throw MoodleException.Authentication("error.browser.cancelled")
+        } catch (_: LinkageError) {
+            throw MoodleException.Authentication("error.browser.failed")
         } catch (_: Exception) {
             throw MoodleException.Authentication("error.browser.failed")
         }

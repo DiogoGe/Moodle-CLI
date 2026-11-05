@@ -38,8 +38,10 @@ token, and removes credentials when an operation reports expired authentication.
 `TokenStore` supplies an optional native persistence boundary. `AccessService`
 validates candidates before saving and verifies stored tokens before activating a
 session. `endSession` clears only process state; `logout` also removes persistence.
-The initial adapter, `MacKeychainTokenStore`, uses Apple's SecItem APIs through JNA;
-its Core Foundation dictionaries own and release their native references.
+`MacKeychainTokenStore` uses Apple's SecItem APIs through JNA; its Core Foundation
+dictionaries own and release their native references. `WindowsCredentialTokenStore`
+uses generic per-user Credential Manager entries. The composition root selects the
+platform adapter; neither adapter invokes a shell or silently falls back to a file.
 `CourseRepository` and `CourseFiles` are replaceable boundaries. Application services
 do not depend on Retrofit, response DTOs, filesystem APIs, or terminal output.
 `AssignmentService` depends on `AssignmentRepository` and `AccessService` for
@@ -125,6 +127,11 @@ its separate state type. The browser implementation has three concrete parts:
 - `IsolatedChromeLoginBrowser` coordinates opening a page and waiting for the callback.
 - `ChromeProcess` owns the process, private pipes, temporary profile, and cleanup.
 - `ChromeLoginPage` configures one browser tab and reads its expected callback link.
+
+`ChromeTransport` is the replaceable process boundary. `UnixChromeTransport` uses
+inherited file descriptors. `WindowsChromeTransport` uses native anonymous pipes,
+a restricted inherited-handle list, and a job object that owns the browser process
+tree. Windows profiles are created atomically with a protected, current-user-only DACL.
 
 `ChromePipe` handles bounded protocol messages and response matching. `MoodleCallbackPage`
 contains the scoped capture scripts. These classes keep transport and process details

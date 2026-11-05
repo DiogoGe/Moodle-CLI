@@ -2,7 +2,7 @@
 
 ## Automatic browser login
 
-`moodle login` uses an installed Chrome/Chromium on macOS or Linux. It creates a
+`moodle login` uses an installed Chrome/Chromium on macOS, Linux, or Windows. It creates a
 separate temporary profile with owner-only directory permissions and a Chrome
 off-the-record browser context. The normal browser profile is never opened or
 imported. The user completes SWITCH authentication, including MFA, in that window.
@@ -43,7 +43,7 @@ or automate MFA. Protocol events and error payloads are not logged.
   retried. A second failure is reported without an unbounded loop.
 - Callback URLs and tokens are not printed, written to configuration, placed in
   process arguments, or copied to the clipboard by automatic login.
-- On macOS, a verified token is stored in Keychain by default. `--no-store` keeps
+- On macOS, a verified token is stored in Keychain; Windows uses Credential Manager. `--no-store` keeps
   the entire process memory-only without reading or changing saved entries.
 - `exit` clears process-local references but keeps a saved login. `logout` also
   deletes the application's saved token for this site; it does not revoke the
@@ -68,11 +68,42 @@ buffers are cleared, but JVM strings and OS memory are not guaranteed to be eras
 The OS may require the user to unlock Keychain or approve access. The CLI never
 enters the user's Keychain password automatically.
 
-The initial adapter supports macOS only. Other platforms use `--no-store` until an
-OS-backed implementation exists. Keychain protects storage using the user's OS
+The composition root selects the platform adapter. Linux uses `--no-store` until an
+OS-backed implementation exists. The credential store protects storage using the user's OS
 security model; an unsigned CLI using a shared JDK does not isolate credentials
 from malicious code running under that same user or JVM identity. Signed application
 packaging and a bundled runtime are a separate deployment decision.
+
+## Windows native integration
+
+Windows Credential Manager stores a generic credential with target
+`moodle-cli:<site-url>` for the current Windows user. `CRED_PERSIST_LOCAL_MACHINE`
+retains it across that user's logons without roaming it to other machines. Only this
+application's exact target is read or deleted. Only `ERROR_NOT_FOUND` means signed
+out; access errors and invalid blobs remain errors. Native buffers are cleared and
+released. Tokens never appear in process arguments or ordinary configuration files.
+
+Automatic login starts Chrome directly with `CreateProcessW`, without a command
+shell. Only the two protocol pipe handles and a null-device handle for discarded standard
+input/output/error are inherited. The suspended process is
+assigned to a kill-on-close job before it starts, so cleanup owns its child processes.
+The profile directory is created with a protected DACL granting only the current
+process user full access, including inherited access to its files. Parent-directory
+permissions are not inherited. A browser log-file environment override is removed.
+The existing callback validation and private Chrome context are shared by all platforms.
+
+Windows-native tests require Windows and do not use a real Moodle account:
+
+```powershell
+$env:MOODLE_WINDOWS_CREDENTIAL_TESTS = "true"
+$env:MOODLE_CHROME_TESTS = "true"
+.\gradlew.bat check
+```
+
+The credential test creates a randomly named entry containing invented values and
+removes it afterwards. Browser tests use a local fixture, verify profile permissions,
+and check cleanup after success, timeout, and start failure. These native paths must
+be exercised on Windows before claiming Windows runtime verification.
 
 ## Manual alternative
 
@@ -108,3 +139,7 @@ MOODLE_KEYCHAIN_TESTS=true ./gradlew test
 
 - [Java Native Access](https://github.com/java-native-access/jna)
 - [Apple Keychain Services](https://developer.apple.com/documentation/security/keychain-services)
+
+- [Windows Credential Manager](https://learn.microsoft.com/windows/win32/api/wincred/nf-wincred-credwritew)
+- [Windows process handle inheritance](https://learn.microsoft.com/windows/win32/api/processthreadsapi/nf-processthreadsapi-updateprocthreadattribute)
+- [Windows job objects](https://learn.microsoft.com/windows/win32/procthread/job-objects)

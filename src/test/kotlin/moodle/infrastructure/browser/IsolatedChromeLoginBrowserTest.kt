@@ -9,6 +9,8 @@ import java.net.InetSocketAddress
 import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.attribute.AclEntryType
+import java.nio.file.attribute.AclFileAttributeView
 import java.nio.file.attribute.PosixFilePermissions
 import java.security.MessageDigest
 import java.time.Clock
@@ -33,7 +35,7 @@ class IsolatedChromeLoginBrowserTest {
             Files.list(profiles).use { entries ->
                 val profile = entries.findFirst().orElseThrow()
                 permissionsChecked.set(
-                    Files.getPosixFilePermissions(profile) == PosixFilePermissions.fromString("rwx------") &&
+                    hasPrivatePermissions(profile) &&
                         !Files.exists(profile.resolve("DevToolsActivePort"))
                 )
             }
@@ -73,6 +75,16 @@ class IsolatedChromeLoginBrowserTest {
         } finally {
             server.stop(0)
         }
+    }
+
+    private fun hasPrivatePermissions(profile: Path): Boolean {
+        if (!System.getProperty("os.name").startsWith("Windows")) {
+            return Files.getPosixFilePermissions(profile) == PosixFilePermissions.fromString("rwx------")
+        }
+        val view = Files.getFileAttributeView(profile, AclFileAttributeView::class.java)
+        val permissions = view.acl
+        return permissions.size == 1 && permissions.single().type() == AclEntryType.ALLOW &&
+            permissions.single().principal() == view.owner
     }
 
     @Test

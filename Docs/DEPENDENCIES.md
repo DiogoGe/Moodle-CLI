@@ -7,7 +7,7 @@
 | Retrofit | Describe Moodle requests through Kotlin interfaces and execute them. |
 | kotlinx.serialization JSON | Convert JSON responses into Kotlin data classes. |
 | Retrofit kotlinx.serialization converter | Connect Retrofit response conversion to Kotlin serialization. |
-| JNA | Call the native macOS Keychain API without shell commands or secret command-line arguments. |
+| JNA and JNA Platform | Native macOS/Windows credential APIs and Windows browser pipes without secret command-line arguments. |
 | jsoup | Parse course HTML locally into readable terminal text without executing scripts or fetching resources. |
 | Kotlin Test with JUnit | Support automated tests. |
 
@@ -35,10 +35,11 @@ requirement justifies them.
 
 ## Credential storage
 
-The macOS adapter uses JNA and Apple's SecItem API. Native access is enabled in the
+The macOS adapter uses JNA and Apple's SecItem API. The Windows adapter uses
+Credential Manager; JNA Platform supplies Windows ABI types for credentials and
+private browser pipes. Native access is enabled in the
 generated launcher. The application does not depend on a generic keyring wrapper
-that might invoke external commands or select a fallback backend. Other operating
-systems currently use explicit memory-only mode. Never treat ordinary configuration
+that might invoke external commands or select a fallback backend. Linux currently uses explicit memory-only mode. Never treat ordinary configuration
 files as secure credential storage.
 
 ## References
@@ -46,3 +47,13 @@ files as secure credential storage.
 - [Retrofit](https://github.com/square/retrofit)
 - [Kotlin serialization](https://kotlinlang.org/docs/serialization-get-started.html)
 - [JDK HTTP client](https://docs.oracle.com/en/java/javase/24/docs/api/java.net.http/java/net/http/HttpClient.html), an alternative if we later choose to remove Retrofit.
+
+## Standalone application packaging
+
+The [Shadow Gradle plugin](https://gradleup.com/shadow/) packages the application
+and its runtime dependencies into one executable JAR. Service provider descriptors
+are merged, bundled native libraries are retained, and dependency notices are
+preserved. Do not enable minimization: serialization, reflection, and native resource
+loading require classes and resources that static reachability analysis may miss.
+The manifest enables native access for `java -jar`; the Java runtime remains an
+external prerequisite. Plugin versions stay in the version catalog.
