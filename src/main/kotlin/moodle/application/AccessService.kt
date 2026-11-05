@@ -9,6 +9,7 @@ import moodle.domain.interfaces.MoodleAccess
 class AccessService(private val access: MoodleAccess, private val siteUrl: String) {
     private var token: AccessToken? = null
     private var userId: Long? = null
+    private var availableFunctions: Set<String> = emptySet()
 
     fun getPublicStatus(): PublicStatus = access.getPublicStatus()
 
@@ -19,6 +20,7 @@ class AccessService(private val access: MoodleAccess, private val siteUrl: Strin
         }
         token = candidate
         userId = info.userId
+        availableFunctions = info.functions.toSet()
         return info
     }
 
@@ -42,8 +44,11 @@ class AccessService(private val access: MoodleAccess, private val siteUrl: Strin
         }
     }
 
+    fun getAvailableFunctions(): Set<String> = availableFunctions
+
     fun logout() {
         token = null
         userId = null
+        availableFunctions = emptySet()
     }
 }

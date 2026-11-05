@@ -28,8 +28,13 @@ and files. `AccessService.withSession` supplies the verified user ID and in-memo
 token, and removes credentials when an operation reports expired authentication.
 `CourseRepository` and `CourseFiles` are replaceable boundaries. Application services
 do not depend on Retrofit, response DTOs, filesystem APIs, or terminal output.
-The separate `MoodleService` and `MoodleRepository` retain assignment filtering logic
-for the assignment integration.
+`AssignmentService` depends on `AssignmentRepository` and `AccessService` for
+assignment listing and optional submission details. `RetrofitAssignmentRepository`
+uses the capabilities recorded at login to skip unsupported status requests.
+`AssignmentList.partial` preserves API warnings without retaining their remote text.
+Individual extensions are applied before deadline filtering; `Clock` makes window
+boundaries and local-time presentation deterministic. `StudyCommands` dispatches
+course and assignment commands consistently in both CLI entry paths.
 
 `RetrofitCourseRepository` maps course DTOs into domain models. `MoodleFileClient`
 restricts credential-bearing requests to the configured Moodle file endpoint and
@@ -48,8 +53,9 @@ Pass dependencies explicitly through constructors. No dependency injection libra
 or global service locator is required. The following is a design sketch:
 
 ```kotlin
-class MoodleService(
-    private val repository: MoodleRepository,
+class AssignmentService(
+    private val access: AccessService,
+    private val repository: AssignmentRepository,
     private val clock: Clock
 )
 ```

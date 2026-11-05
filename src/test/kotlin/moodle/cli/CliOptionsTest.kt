@@ -36,7 +36,7 @@ class CliOptionsTest {
         val cli = MoodleCli(
             output = output::add,
             errorOutput = errors::add,
-            courseCommand = { throw MoodleException.Authentication("error.session.required") },
+            studyCommand = { throw MoodleException.Authentication("error.session.required") },
             messages = Messages(Locale.GERMAN)
         )
         assertEquals(0, cli.run(arrayOf("--help")))

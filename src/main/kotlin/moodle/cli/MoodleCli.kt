@@ -7,7 +7,7 @@ class MoodleCli(
     private val output: (String) -> Unit = ::println,
     private val errorOutput: (String) -> Unit = System.err::println,
     private val accessCommand: (String) -> Int = { throw MoodleException.FeatureUnavailable("access") },
-    private val courseCommand: (List<String>) -> Int = { throw MoodleException.FeatureUnavailable("courses") },
+    private val studyCommand: (List<String>) -> Int = { throw MoodleException.FeatureUnavailable("courses") },
     private val messages: Messages = Messages()
 ) {
     fun run(args: Array<String>): Int = try {
@@ -24,7 +24,7 @@ class MoodleCli(
         }
         args.size == 1 && args[0] in setOf("login", "health") -> accessCommand(args[0])
         args.contentEquals(arrayOf("login", "--manual")) -> accessCommand("login-manual")
-        args.first() in setOf("courses", "course", "read", "download") -> courseCommand(args.toList())
+        args.first() in setOf("courses", "course", "read", "download", "tasks", "upcoming") -> studyCommand(args.toList())
         args.first() in PLANNED_COMMANDS -> usageError(messages.text("error.cli.planned", args.first()))
         else -> usageError(messages.text("error.cli.usage"))
     }
@@ -35,6 +35,6 @@ class MoodleCli(
     }
 
     private companion object {
-        val PLANNED_COMMANDS = setOf("setup", "tasks", "upcoming", "logout")
+        val PLANNED_COMMANDS = setOf("setup", "logout")
     }
 }

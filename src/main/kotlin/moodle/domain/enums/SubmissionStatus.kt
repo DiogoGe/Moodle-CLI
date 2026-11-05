@@ -4,5 +4,6 @@ enum class SubmissionStatus {
     UNKNOWN,
     NOT_SUBMITTED,
     DRAFT,
-    SUBMITTED
+    SUBMITTED,
+    REOPENED
 }

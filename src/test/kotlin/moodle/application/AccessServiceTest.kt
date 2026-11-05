@@ -21,8 +21,10 @@ class AccessServiceTest {
         val service = AccessService(access, site)
         assertNull(service.getAuthenticatedStatus())
         assertEquals(info, service.login(token))
+        assertEquals(info.functions, service.getAvailableFunctions())
         assertEquals(info, service.getAuthenticatedStatus())
         service.logout()
+        assertEquals(emptySet(), service.getAvailableFunctions())
         assertNull(service.getAuthenticatedStatus())
         assertEquals(2, access.calls)
     }

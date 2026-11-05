@@ -83,7 +83,7 @@ or a shell command. Use the link from the current login attempt.
 
 Both paths validate the callback against the current attempt and verify the token
 with `core_webservice_get_site_info`. The in-memory session accepts `courses`,
-`course`, `read`, `download`, `health`, `logout`, and `exit`. Credentials are not saved between processes. A callback is
+`course`, `read`, `download`, `tasks`, `upcoming`, `health`, `logout`, and `exit`. Credentials are not saved between processes. A callback is
 single-use and expires after fifteen minutes; automatic browser waiting stops after
 ten minutes. Close the separate browser window or press Ctrl+C to cancel.
 
@@ -117,6 +117,33 @@ outside the configured Moodle file endpoint are refused. Downloads are limited t
 512 MiB per file; reading a text page is limited to 2 MiB. Redirects are not followed,
 and the token is sent in the POST body rather than appended to a URL. Moodle must
 enable file downloads for the mobile Web Service. Files are not opened automatically.
+
+## Assignments and deadlines
+
+Within the same running login session:
+
+```text
+tasks
+tasks --course 1234
+upcoming --days 7
+```
+
+`tasks` lists accessible Moodle Assignment activities with their IDs, course names,
+deadlines, and submission statuses. `--course` accepts a positive course ID from
+`courses`. `upcoming` requires a positive whole number of days and includes
+deadlines from now through that many 24-hour periods, sorted by deadline.
+Assignments without a deadline remain visible in `tasks`. Already submitted
+assignments are included; a passed deadline is a separate label and does not mean
+an assignment is unsubmitted. Dates use the local timezone and show its UTC offset and zone name.
+
+The CLI uses `mod_assign_get_assignments` and, when exposed by the token,
+`mod_assign_get_submission_status`. It reads the current user's submissions,
+uses group submission status for group assignments, and applies returned personal
+extensions before filtering deadlines. Missing or inaccessible submission details
+are marked unknown; check personal extensions in Moodle when details are unavailable.
+Partial course or activity access is indicated explicitly. Network and authentication
+failures are reported as errors rather than as empty lists. Quiz and other activity
+types are outside this command's scope.
 
 ## Structure
 

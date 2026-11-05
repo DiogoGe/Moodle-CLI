@@ -8,5 +8,8 @@ data class Assignment(
     val courseId: Long,
     val name: String,
     val dueDate: Instant?,
-    val submissionStatus: SubmissionStatus = SubmissionStatus.UNKNOWN
+    val submissionStatus: SubmissionStatus = SubmissionStatus.UNKNOWN,
+    val courseName: String = "",
+    val groupSubmission: Boolean = false,
+    val submissionsEnabled: Boolean = true
 )

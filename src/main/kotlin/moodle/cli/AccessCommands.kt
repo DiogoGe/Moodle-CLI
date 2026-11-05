@@ -18,7 +18,7 @@ class AccessCommands(
     private val loginBrowser: LoginBrowser,
     private val output: (String) -> Unit = ::println,
     private val consoleProvider: () -> Console? = System::console,
-    private val courseCommand: (List<String>) -> Int = { throw MoodleException.FeatureUnavailable("courses") },
+    private val studyCommand: (List<String>) -> Int = { throw MoodleException.FeatureUnavailable("courses") },
     private val messages: Messages = Messages()
 ) {
     fun run(command: String): Int = when (command) {
@@ -133,7 +133,7 @@ class AccessCommands(
     private fun runSessionSafely(command: String) {
         try {
             val args = SessionArguments.parse(command)
-            if (args == listOf("health")) health() else courseCommand(args)
+            if (args == listOf("health")) health() else studyCommand(args)
         } catch (error: MoodleException) {
             output(messages.error(error))
         }

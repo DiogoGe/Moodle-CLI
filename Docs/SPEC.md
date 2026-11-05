@@ -34,6 +34,11 @@ come from reliable API data; unavailable status is shown as unknown. An elapsed
 deadline alone does not prove that an assignment is unsubmitted. Clearly mark past
 deadlines in the task list. The upcoming view covers the current time through the
 selected future period; older deadlines remain visible through `tasks`.
+The window uses elapsed 24-hour days and includes both boundaries. Apply returned
+personal extensions before filtering, and use team submission status for group
+assignments. Missing optional status access must not hide accessible assignments;
+keep it unknown. Mark partial API results and never echo remote warning messages.
+These commands cover Moodle Assignment activities, not quizzes or all activity types.
 
 ## Next milestone: course materials
 
@@ -85,7 +90,6 @@ for the class diagram and Kotlin conventions.
 
 - German and English user-facing messages, with English fallback for other system languages.
   Keep command names and original course content unchanged across languages.
-
 - Readable output for empty results, long names, and missing optional values.
 - Clear errors for invalid input, insufficient permissions, expired authentication,
   unsupported functions, and network failures.
