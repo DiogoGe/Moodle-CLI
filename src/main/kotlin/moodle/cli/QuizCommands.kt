@@ -4,6 +4,7 @@ import moodle.application.QuizService
 import moodle.cli.i18n.Messages
 import moodle.domain.entities.Quiz
 import moodle.domain.exceptions.MoodleException
+import moodle.presentation.PlainText
 import java.time.Clock
 
 class QuizCommands(
@@ -12,7 +13,7 @@ class QuizCommands(
     private val output: (String) -> Unit = ::println,
     private val messages: Messages = Messages()
 ) {
-    private val text = TerminalText()
+    private val text = PlainText()
     private val dates = TerminalDates(clock, messages)
 
     fun run(args: List<String>): Int {

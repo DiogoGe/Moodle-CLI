@@ -1,0 +1,23 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "moodle",
+  "version": "@pluginVersion@",
+  "description": "Read your Moodle courses, course text, assignments, deadlines and quiz schedules through a local MCP server.",
+  "author": { "name": "Diogo Godinho" },
+  "homepage": "https://github.com/DiogoGe/Moodle-CLI",
+  "repository": "https://github.com/DiogoGe/Moodle-CLI",
+  "license": "MIT",
+  "keywords": ["moodle", "courses", "assignments", "study"],
+  "extensions": {
+    "com.openai": {
+      "requires_local_executor": true,
+      "interface": {
+        "displayName": "Moodle",
+        "shortDescription": "Read Moodle courses, materials and deadlines",
+        "developerName": "Diogo Godinho",
+        "category": "Productivity",
+        "capabilities": ["Read"]
+      }
+    }
+  }
+}

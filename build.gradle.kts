@@ -13,6 +13,8 @@ repositories {
 }
 
 dependencies {
+    implementation(libs.mcp.server)
+    runtimeOnly(libs.slf4j.nop)
     implementation(libs.jna)
     implementation(libs.jna.platform)
     implementation(libs.jsoup)
@@ -81,4 +83,35 @@ tasks.withType<Jar>().configureEach {
     from(layout.projectDirectory.file("LICENSE")) {
         into("META-INF/moodle-cli")
     }
+}
+
+val prepareCodexPlugin = tasks.register<Sync>("prepareCodexPlugin") {
+    description = "Build a local Codex marketplace containing the Moodle plugin and its MCP server."
+    group = "distribution"
+    dependsOn(tasks.shadowJar)
+    into(layout.buildDirectory.dir("codex-plugin"))
+    from("plugins/moodle") {
+        into("plugins/moodle")
+        filesMatching("plugin.json") {
+            filter<org.apache.tools.ant.filters.ReplaceTokens>("tokens" to mapOf("pluginVersion" to project.version.toString()))
+        }
+    }
+    from(tasks.shadowJar.flatMap { it.archiveFile }) {
+        into("plugins/moodle/server")
+    }
+    from("plugin-packaging/marketplace.json") {
+        into(".agents/plugins")
+    }
+    from("LICENSE") {
+        into("plugins/moodle")
+    }
+}
+
+val codexPluginZip = tasks.register<Zip>("codexPluginZip") {
+    description = "Package the local Moodle Codex marketplace for sharing."
+    group = "distribution"
+    dependsOn(prepareCodexPlugin)
+    from(prepareCodexPlugin)
+    archiveFileName.set("moodle-codex-plugin.zip")
+    destinationDirectory.set(layout.buildDirectory.dir("distributions"))
 }

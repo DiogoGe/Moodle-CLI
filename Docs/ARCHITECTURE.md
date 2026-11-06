@@ -1,5 +1,7 @@
 # Architecture
 
+[Project overview](../README.md) · [Development](DEVELOPMENT.md) · [Specification](SPEC.md)
+
 ## Dependency boundaries
 
 Use one Gradle module with separate packages. The domain owns the models and the
@@ -63,11 +65,11 @@ is an alias of `tasks`; quiz closing times are not merged into `upcoming`.
 restricts credential-bearing requests to the configured Moodle file endpoint and
 sends the token in the POST body without following redirects. `LocalCourseFiles`
 handles bounded streaming, safe filenames, exclusive file creation, and cleanup
-of failed downloads. `TerminalText` parses HTML locally with jsoup and removes
+of failed downloads. `PlainText` parses HTML locally with jsoup and removes
 terminal controls; it does not fetch embedded resources.
 
-`Main.kt` is the composition root: it loads configuration, builds adapters and
-services, and connects the CLI dispatchers. Secrets stay in the running process.
+`MoodleApplication.kt` composes the shared adapters and services. `Main.kt` selects
+the terminal or local MCP entry point and connects its presentation adapters. Secrets stay in the running process.
 Keep secrets out of generated `toString()` output, including configuration data classes.
 
 ## Constructor injection
@@ -160,3 +162,19 @@ without digit grouping so they can be copied into commands.
 When adding a message, add the same key and numbered placeholders to both resource
 files. Keep properties UTF-8; escape literal apostrophes as `''` for MessageFormat.
 Course content is not translated. Command names are the same in both languages.
+
+## MCP presentation boundary
+
+The optional local MCP server reuses `AccessService`, `CourseService`,
+`AssignmentService`, and `QuizService`. It introduces no MCP dependency into domain
+or application code. `MoodleMcpServer` owns the official SDK's stdio lifecycle;
+`MoodleMcpTools` serializes calls and translates failures. `MoodleQueries` routes
+only explicitly supported read operations, while `McpContent` constructs bounded
+output from an allowlist of fields. `McpArguments` enforces validation independently
+of the client's JSON Schema handling.
+
+The CLI and MCP adapters share `PlainText` under `presentation/`; neither renderer
+fetches embedded HTML resources. MCP file metadata omits protected resource URLs.
+The server loads the existing saved login without exposing authentication tools
+or accepting arbitrary upstream URLs/functions. See [MCP](MCP.md) for the protocol,
+plugin packaging, and privacy boundary when course content enters Codex context.

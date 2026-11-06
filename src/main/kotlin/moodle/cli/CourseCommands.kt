@@ -4,13 +4,14 @@ import moodle.application.CourseService
 import moodle.cli.i18n.Messages
 import moodle.domain.entities.CourseModule
 import moodle.domain.exceptions.MoodleException
+import moodle.presentation.PlainText
 
 class CourseCommands(
     private val service: CourseService,
     private val output: (String) -> Unit = ::println,
     private val messages: Messages = Messages()
 ) {
-    private val text = TerminalText()
+    private val text = PlainText()
 
     fun run(args: List<String>): Int {
         when {

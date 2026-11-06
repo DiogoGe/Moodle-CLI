@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "moodle": {
+      "type": "stdio",
+      "command": "java",
+      "args": ["-jar", "${PLUGIN_ROOT}/server/moodle.jar", "--lang", "en", "mcp"],
+      "cwd": "${PLUGIN_ROOT}"
+    }
+  }
+}

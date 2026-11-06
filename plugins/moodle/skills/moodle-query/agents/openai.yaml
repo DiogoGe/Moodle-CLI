@@ -1,0 +1,4 @@
+interface:
+  display_name: "Moodle study queries"
+  short_description: "Read courses, materials and upcoming Moodle deadlines"
+  default_prompt: "Use $moodle-query to show my upcoming assignments and relevant course materials."

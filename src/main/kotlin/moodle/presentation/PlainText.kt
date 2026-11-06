@@ -1,9 +1,9 @@
-package moodle.cli
+package moodle.presentation
 
 import org.jsoup.Jsoup
 
 /** Parses HTML locally; never fetches images, scripts, stylesheets, or links. */
-internal class TerminalText {
+internal class PlainText {
     fun render(html: String): String {
         val document = Jsoup.parseBodyFragment(html)
         document.select("script, style, iframe, object, template").remove()

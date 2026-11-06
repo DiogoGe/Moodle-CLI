@@ -1,153 +1,146 @@
 # Moodle CLI — Specification
 
-## Goal
+[Project overview](../README.md) · [Usage](USAGE.md) · [Architecture](ARCHITECTURE.md)
 
-Build a local command-line application in Kotlin that helps a learner view Moodle
-courses, assignments, and deadlines, then download course materials. The project
-should be useful in everyday study and remain understandable as a Kotlin learning project.
+## Goal and scope
 
-The first release supports one user and one Moodle instance. It reads Moodle data
-without changing server-side content.
+Provide a local Kotlin command-line application that helps a learner browse Moodle
+courses and materials, inspect assignments and quizzes, and download individual
+files. Keep the code understandable as a Kotlin learning project.
 
-## MVP commands
+The application supports one user and one configured Moodle instance per process.
+The current instance is `https://moodle.zhaw.ch/`. Institutional authentication uses
+the Moodle mobile login flow with SWITCH authentication completed by the user.
+The application reads Moodle data without modifying server-side course content.
 
-These commands describe the intended interface, not features already implemented.
+This document defines requirements and boundaries. [Usage](USAGE.md) documents the
+available command syntax; [Getting started](GETTING_STARTED.md) covers installation
+and sign-in. Future extensions are listed separately below.
 
-| Command | Purpose and acceptance criteria |
-| --- | --- |
-| `moodle setup <url>` | Validate and save the Moodle base URL locally. Use HTTPS for normal operation. |
-| `moodle login` | Authenticate through a supported method and save the verified token in the OS credential store. Hide secret input. |
-| `moodle health` | Report connection health, authentication status, and availability of required API functions. |
-| `moodle courses` | List accessible enrolled courses with their IDs and names. |
-| `course <id>` | Within the login session, display sections, activity descriptions, inline text, and numbered files. |
-| `read <course-id> <module-id>` | Display activity text, including the full content of Moodle Page resources, as plain text. |
-| `download <course-id> <module-id> <file-number> [directory]` | Download one listed file without overwriting existing files. |
-| `moodle assignments` | Alias of `tasks`; list Moodle Assignment activities separately from quizzes. |
-| `moodle quizzes [--course <id>]` | List quizzes and learning checks separately, with IDs and available opening, closing, and time-limit metadata. |
-| `moodle tasks` | List accessible assignments with course, title, deadline when present, and submission status when available. |
-| `moodle tasks --course <id>` | Restrict results to the selected accessible course. |
-| `moodle upcoming --days 7` | Show assignments due within the requested period, ordered by deadline. Reject invalid day counts. |
-| `moodle logout` | Clear process state and remove this application's saved credential for the configured site. Do not claim server-side token revocation. |
-| `moodle --no-store login` | Use process memory only; never read, write, or delete persisted credentials. |
-| `moodle --help` | Explain commands and options with examples. |
-| `moodle --lang de\|en <command>` | Override the system language for all messages in the process and login session. |
+## Authentication and session requirements
 
-Assignments without deadlines must be labelled accordingly. Submission status must
-come from reliable API data; unavailable status is shown as unknown. An elapsed
-deadline alone does not prove that an assignment is unsubmitted. Clearly mark past
-deadlines in the task list. The upcoming view covers the current time through the
-selected future period; older deadlines remain visible through `tasks`.
-The window uses elapsed 24-hour days and includes both boundaries. Apply returned
-personal extensions before filtering, and use team submission status for group
-assignments. Missing optional status access must not hide accessible assignments;
-keep it unknown. Mark partial API results and never echo remote warning messages.
-`tasks`/`assignments` and `upcoming` cover Moodle Assignment activities. `quizzes`
-provides a separate quiz list using `mod_quiz_get_quizzes_by_courses`, optionally
-filtered by course. Mark missing timing as unknown; only explicit zero values mean
-no restriction. Quiz listing must not create, answer, finish, or fetch questions
-from attempts. Other activity types remain available through the course overview.
+- Support automatic callback capture through an isolated browser and manual callback
+  input through a real terminal's hidden prompt.
+- Bind callbacks to the current site and a single-use, time-limited login attempt.
+- Validate the token with Moodle before saving or activating a session.
+- Provide `health` to report public Web Service configuration, authenticated status,
+  and relevant functions exposed by the token.
+- Store verified tokens in macOS Keychain or Windows Credential Manager through
+  native adapters. Report storage failures explicitly; never silently fall back
+  to an ordinary file or memory-only mode.
+- Restore and verify a saved token before private feature requests. Keep saved
+  credentials on network failures; remove expired or rejected tokens.
+- `exit` ends the interactive process and retains a saved login. `logout` also removes
+  the application's saved credential for the configured site, without claiming
+  server-side token revocation.
+- `--no-store` must bypass all persisted credential reads, writes, and deletions.
+  Linux currently requires this explicit memory-only mode.
 
-## Next milestone: course materials
+See [Authentication](AUTHENTICATION.md) for browser isolation, token transport,
+native resource ownership, and the limitations of OS credential storage.
 
-- List course sections, text descriptions, inline content, and downloadable files.
-- Download an individual file or the available files of a course.
-- Allow a destination directory; organizing bulk downloads by course and section is a later extension.
-- Skip existing files by default; require an explicit option to overwrite them.
-- Keep downloaded files inside the selected destination, including when remote
-  filenames contain unsafe path components.
+## Course and material requirements
 
-## Technical decisions
+- List enrolled courses with IDs and names.
+- Show accessible sections, descriptions, inline text, activities, and numbered files.
+- Read activity text, including the full body of accessible Moodle Page resources.
+- Convert HTML to terminal-safe plain text without executing scripts or fetching
+  embedded resources during rendering.
+- Download one file selected by course ID, course-module ID, and displayed file number.
+- Accept an optional destination directory and default to `./downloads`.
+- Never overwrite an existing file or symbolic link. There is no overwrite option.
+- Reject unsafe path components, terminal controls, and reserved Windows device names.
+- Bound file downloads to 512 MiB and text reads to 2 MiB. Restrict credential-bearing
+  file requests to the configured Moodle file endpoint without following redirects.
+- Do not automatically open downloaded files.
 
-- Kotlin/JVM with Gradle Kotlin DSL and a committed Gradle Wrapper.
-- One application module initially.
-- Retrofit for API declarations and requests.
-- kotlinx.serialization JSON plus the Retrofit serialization converter for JSON mapping.
-- OkHttp is brought in by Retrofit; no additional HTTP client is needed initially.
-- Kotlin Test with JUnit for automated tests; choose the exact integration during setup.
-- Parse the initial commands with `main(args)` and `when`.
-- Use JDK APIs for files (`java.nio.file`) and dates and times (`java.time`).
-- No Ktor, Clikt, dependency injection framework, or database in the initial setup.
-- Select and pin compatible dependency, Kotlin, Gradle, and JDK versions during setup.
-- See [Dependency decisions](DEPENDENCIES.md) for the rationale.
+## Assignment and deadline requirements
 
-## Code organization
+- `tasks` and `assignments` are aliases for the same Moodle Assignment list.
+  Support filtering by a positive course ID.
+- Show IDs, courses, titles, due dates where present, and reliable submission status.
+- Label unavailable submission status as unknown. Missing optional submission access
+  must not hide an otherwise accessible assignment.
+- Use team submission status for group assignments and apply returned personal
+  extensions before filtering deadlines.
+- Keep assignments without deadlines in the general assignment list. Keep submitted
+  assignments visible; a past deadline does not imply an unsubmitted assignment.
+- `upcoming` requires a positive whole-number day count. Include deadlines from the
+  current instant through the end of that many elapsed 24-hour periods, including
+  both boundaries, sorted by deadline. Older deadlines remain in the general list.
+- Present dates in the local time zone with an explicit UTC offset and zone name.
 
-Keep a small number of packages with clear responsibilities. Add classes as their
-features are implemented, rather than creating empty placeholders.
+## Quiz requirements
 
-```text
-src/main/kotlin/moodle/
-├── Main.kt       # Application entry point
-├── cli/          # Command parsing and terminal output
-├── config/       # Moodle URL and local settings
-├── domain/       # Application models and repository contracts
-├── application/  # Workflows, filtering, sorting
-└── infrastructure/ # Retrofit API, DTOs, mapping, repository implementation
+- List quizzes and learning checks separately from Moodle Assignment activities.
+  Support the same positive course-ID filter.
+- Show quiz and course IDs and available opening, closing, and time-limit metadata.
+- Label missing timing as unavailable; only explicit zero values mean no restriction.
+- Keep quiz closing times separate from Assignment submission deadlines. `upcoming`
+  covers Assignments rather than quiz closing times.
+- Do not start, answer, finish, or fetch questions from quiz attempts.
+- Leave other activity types accessible through the general course overview.
 
-src/test/kotlin/moodle/
-```
+## Presentation and failure requirements
 
-A typical flow is `CLI -> service -> repository contract`. The Retrofit repository
-implements that contract and calls Moodle. Application logic depends on the
-contract, never on Retrofit, response DTOs, or HTTP details. `Main.kt` constructs
-and connects the dependencies through constructors. See [Architecture](ARCHITECTURE.md)
-for the class diagram and Kotlin conventions.
+- Provide German and English messages, with English fallback for other system locales.
+  `--lang de|en` overrides the language for the whole process and interactive session.
+- Keep command names and original course content unchanged across languages.
+- Explain supported commands through `--help`. Validate IDs, day counts, file numbers,
+  quoting, and argument combinations before performing the corresponding operation.
+- Handle empty results, long names, and missing optional values clearly.
+- Report unavailable core API functions, insufficient permissions, expired sessions,
+  network failures, and invalid input explicitly rather than returning misleading empty lists.
+- Preserve partial-access warnings without displaying unsanitized remote warning text.
+  Exposed API functions do not imply access to every course or activity.
+- Keep tokens, passwords, callback URLs, and private content out of application logs,
+  diagnostic errors, source control, and test fixtures.
+- Bound network timeouts and retries. Only explicitly allowlisted read operations
+  may retry once after a recoverable transport interruption.
 
-## Quality requirements
+## Technical and quality requirements
 
-- German and English user-facing messages, with English fallback for other system languages.
-  Keep command names and original course content unchanged across languages.
-- Readable output for empty results, long names, and missing optional values.
-- Clear errors for invalid input, insufficient permissions, expired authentication,
-  unsupported functions, and network failures.
-- Display deadlines with an explicit date and time in the local time zone.
-- Never put passwords or tokens into source control, logs, or error messages.
-- Use bounded network timeouts and avoid unbounded retries.
-- Tests for deadline filtering, submission status handling, and error handling;
-  add download-path tests when downloads are implemented.
-- Local automated tests must not require a real Moodle account.
-- Build through the Gradle Wrapper and document setup and usage.
-- Verify on the development machine first; test other platforms explicitly later.
+Use Kotlin/JVM, one Gradle application module, constructor injection, and a committed
+Gradle Wrapper. Application/domain code must remain independent of Retrofit, DTOs,
+files, and terminal output. Repository interfaces describe replaceable boundaries.
+See [Architecture](ARCHITECTURE.md) and [Dependency decisions](DEPENDENCIES.md).
 
-Persistent authentication uses macOS Keychain or Windows Credential Manager through native adapters. Validate
-the token's site before saving and before restoring private access. `exit` keeps a
-saved login; `logout` removes it locally. Keep saved credentials on connection
-failures, but remove expired or rejected tokens. Store failures are explicit errors,
-never a plain-text or silent in-memory fallback. `--no-store` explicitly selects
-memory-only operation and is required on Linux until a native adapter exists.
+Tests must cover filtering, submission status, authentication, API error mapping,
+and safe download paths without requiring a real Moodle account. Native integration
+tests use isolated invented credentials and must run on their target platform.
 
-## Moodle integration
+Build and format through the Gradle Wrapper. Style checks belong to the build;
+formatting is an explicit action. Keep exact toolchain, library, and plugin versions
+in build configuration. See [Development](DEVELOPMENT.md) for the workflow.
 
-Use the Moodle Web Service API as the initial integration path. The user already
-has a working Moodle login. During the first real API integration, verify which
-API authentication method and functions that account can use. A working browser
-login does not by itself establish API access. Report unsupported capabilities
-clearly rather than presenting them as empty results.
+Distribute an executable JAR containing Kotlin and runtime dependencies, including
+native resources and license notices. Java remains an external prerequisite.
 
-## Out of scope for the first release
+## Local Codex integration
 
-- Assignment submissions, uploads, or other server-side changes.
-- Teacher and administrator features.
-- Automatically answering quizzes or exams.
-- Supporting every Moodle version or institutional authentication method.
-- Importing existing browser cookies, scraping course pages, or entering institutional passwords automatically.
-  Automatic capture of the final mobile-login callback uses a separate private browser context;
-  see [Authentication](AUTHENTICATION.md).
-- A graphical interface, hosting, and AI or MCP integration.
+Expose a local stdio MCP server with an explicit allowlist of study queries that
+reuse the existing services and saved native login. Do not expose login, token
+retrieval, submissions, quiz attempts, downloads, or arbitrary API/URL tools.
+Bound and paginate results, omit resource URLs and identity metadata, and return
+sanitized errors. Treat returned course content as untrusted data in the bundled
+Codex skill. Document that retrieved content enters the Codex conversation.
+See [MCP](MCP.md) for setup and the supported tool contract.
 
-## Implementation milestones
+## Future extensions
 
-1. Set up Kotlin, Gradle Wrapper, dependencies, and the application entry point.
-2. Build successfully and provide command help.
-3. Display explicitly labelled sample courses to exercise the CLI structure.
-4. Connect to the real Moodle API, implement `health`, and replace sample data.
-5. Implement course listing, assignments, submission statuses where available,
-   and deadline filtering.
-6. Verify the MVP and document usage.
-7. Add course material downloads.
-
-## Integration details still to determine
-
-- Target Moodle URL and available API authentication method.
-- API functions available to the account.
+- `setup <url>` to validate and persist another Moodle instance's base URL.
+- Bulk downloads with an explicit policy for existing files and course/section layout.
 - A native credential-store adapter for Linux.
+- Release packaging with a bundled Java runtime.
+
+These are extension ideas, not available commands or promised delivery dates.
+
+## Out of scope
+
+- Assignment submissions, uploads, and other server-side content changes.
+- Teacher or administrator workflows.
+- Answering quizzes or exams automatically.
+- Overriding institutional access restrictions or supporting every Moodle/authentication setup.
+- Importing an existing browser profile, cookies, or password-manager data.
+- Entering institutional passwords or automating MFA.
+- A graphical interface, hosting, and LLM API calls inside the application.

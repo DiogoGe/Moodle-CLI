@@ -1,5 +1,7 @@
 # Authentication
 
+[Project overview](../README.md) · [Sign-in guide](GETTING_STARTED.md) · [Development](DEVELOPMENT.md)
+
 ## Automatic browser login
 
 `moodle login` uses an installed Chrome/Chromium on macOS, Linux, or Windows. It creates a
@@ -104,6 +106,15 @@ The credential test creates a randomly named entry containing invented values an
 removes it afterwards. Browser tests use a local fixture, verify profile permissions,
 and check cleanup after success, timeout, and start failure. These native paths must
 be exercised on Windows before claiming Windows runtime verification.
+
+## Local MCP queries
+
+The optional [Codex plugin](MCP.md) reuses the saved login and existing services.
+Authentication stays in a separate terminal flow; MCP tools do not request tokens,
+open browser login, or serialize credentials and protected file URLs. Calls within
+one server process are serialized. Expired-token cleanup follows the same rules as
+the CLI. Course text is treated as untrusted data, and returned material becomes
+part of the Codex conversation; local stdio does not imply local-only model processing.
 
 ## Manual alternative
 

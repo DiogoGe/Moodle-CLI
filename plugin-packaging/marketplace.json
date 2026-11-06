@@ -1,0 +1,12 @@
+{
+  "name": "moodle-local",
+  "interface": { "displayName": "Moodle CLI local plugins" },
+  "plugins": [
+    {
+      "name": "moodle",
+      "source": { "source": "local", "path": "./plugins/moodle" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_USE" },
+      "category": "Productivity"
+    }
+  ]
+}

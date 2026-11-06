@@ -6,6 +6,7 @@ import moodle.domain.entities.Assignment
 import moodle.domain.entities.AssignmentList
 import moodle.domain.enums.SubmissionStatus
 import moodle.domain.exceptions.MoodleException
+import moodle.presentation.PlainText
 import java.time.Clock
 
 class AssignmentCommands(
@@ -14,7 +15,7 @@ class AssignmentCommands(
     private val output: (String) -> Unit = ::println,
     private val messages: Messages = Messages()
 ) {
-    private val text = TerminalText()
+    private val text = PlainText()
     private val dates = TerminalDates(clock, messages)
 
     fun run(args: List<String>): Int {
