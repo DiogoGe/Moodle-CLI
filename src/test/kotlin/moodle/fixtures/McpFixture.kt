@@ -35,7 +35,12 @@ internal class McpFixture {
     var courses = List(30) { Course(it + 1L, "<b>Course ${it + 1}</b>") }
     var text = "<p>First paragraph</p><script>private script</script><p>Last paragraph</p>"
     var failure: RuntimeException? = null
-    var courseCalls = 0
+    private val courseCallCount = java.util.concurrent.atomic
+        .AtomicInteger()
+    val courseCalls: Int get() = courseCallCount.get()
+    var beforeCourses: () -> Unit = {}
+    var beforeDownload: () -> Unit = {}
+    var downloadedFile: String? = null
     val assignments = FakeAssignmentRepository(AssignmentList(listOf(Assignment(10, 1, "Task", clock.instant())), partial = true))
     val quizzes = FakeQuizRepository(QuizList(listOf(Quiz(20, 1, "Quiz", QuizTiming(null, null, Duration.ofMinutes(5))))))
     val access = AccessService(
@@ -49,13 +54,14 @@ internal class McpFixture {
     )
     private val repository = object : CourseRepository {
         override fun getCourses(token: AccessToken, userId: Long): List<Course> {
-            courseCalls++
+            courseCallCount.incrementAndGet()
+            beforeCourses()
             failure?.let { throw it }
             return courses
         }
 
         override fun getContents(token: AccessToken, courseId: Long): List<CourseSection> {
-            courseCalls++
+            courseCallCount.incrementAndGet()
             val file =
                 CourseFile(
                     "notes.pdf",
@@ -76,7 +82,16 @@ internal class McpFixture {
         }
     }
     private val files = object : CourseFiles {
-        override fun download(token: AccessToken, file: CourseFile, directory: String): DownloadedFile = error("No MCP downloads")
+        override fun download(token: AccessToken, file: CourseFile, directory: String): DownloadedFile {
+            beforeDownload()
+            downloadedFile = file.name
+            return DownloadedFile(
+                java.nio.file.Path
+                    .of(directory, file.name)
+                    .toString(),
+                file.size
+            )
+        }
         override fun readText(token: AccessToken, file: CourseFile): String = text
     }
     val application = MoodleApplication(

@@ -122,6 +122,20 @@ class LocalCourseFilesTest {
         }
     }
 
+    @Test
+    fun `oversized file metadata is rejected before creating directories or requesting content`() {
+        withServer("unused") { files, base, directory, requests ->
+            val destination = directory.resolve("not-created")
+            val oversized = file(base).copy(size = 512L * 1024 * 1024 + 1)
+            val error = assertFailsWith<MoodleException.Download> {
+                files.download(token, oversized, destination.toString())
+            }
+            assertEquals("error.download.tooLarge", error.messageKey)
+            assertTrue(requests.isEmpty())
+            assertFalse(Files.exists(destination))
+        }
+    }
+
     private fun file(base: String): CourseFile = CourseFile("test.pdf", "$base/webservice/pluginfile.php/1/test", 0, null)
 
     private fun withServer(

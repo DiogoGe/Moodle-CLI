@@ -8,20 +8,28 @@ internal object SessionArguments {
         val arguments = mutableListOf<String>()
         val current = StringBuilder()
         var quote: Char? = null
+        var started = false
         for (character in line) {
             when {
                 character == quote -> quote = null
                 quote != null -> current.append(character)
-                character == '\'' || character == '"' -> quote = character
-                character.isWhitespace() -> {
-                    if (current.isNotEmpty()) arguments.add(current.toString())
-                    current.clear()
+                character == '\'' || character == '"' -> {
+                    quote = character
+                    started = true
                 }
-                else -> current.append(character)
+                character.isWhitespace() -> {
+                    if (started) arguments.add(current.toString())
+                    current.clear()
+                    started = false
+                }
+                else -> {
+                    current.append(character)
+                    started = true
+                }
             }
         }
         if (quote != null) throw MoodleException.Input("error.input.quote")
-        if (current.isNotEmpty()) arguments.add(current.toString())
+        if (started) arguments.add(current.toString())
         return arguments
     }
 }

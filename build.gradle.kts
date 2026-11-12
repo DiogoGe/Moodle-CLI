@@ -14,6 +14,7 @@ repositories {
 
 dependencies {
     implementation(libs.mcp.server)
+    implementation(libs.kotlinx.coroutines.core)
     runtimeOnly(libs.slf4j.nop)
     implementation(libs.jna)
     implementation(libs.jna.platform)

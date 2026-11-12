@@ -5,6 +5,7 @@ import moodle.application.AccessService
 import moodle.application.AssignmentService
 import moodle.application.CourseService
 import moodle.application.QuizService
+import moodle.config.MoodleConfig
 import moodle.infrastructure.api.RetrofitMoodleAccess
 import moodle.infrastructure.api.createMoodleApi
 import moodle.infrastructure.api.repository.RetrofitAssignmentRepository
@@ -23,8 +24,8 @@ internal class MoodleApplication(
     val quizzes: QuizService
 )
 
-internal fun createMoodleApplication(useKeychain: Boolean): MoodleApplication {
-    val site = "https://moodle.zhaw.ch/"
+internal fun createMoodleApplication(useKeychain: Boolean, config: MoodleConfig = MoodleConfig()): MoodleApplication {
+    val site = config.baseUrl
     val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true

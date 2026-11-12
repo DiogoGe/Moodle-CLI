@@ -15,11 +15,16 @@ internal class PlainText {
         return text
             .filter { it == '\n' || it == '\t' || (!it.isISOControl() && Character.getType(it) != Character.FORMAT.toInt()) }
             .lines()
-            .map { it.trim().replace(Regex("[ \t]+"), " ") }
+            .map { it.trim().replace(HORIZONTAL_WHITESPACE, " ") }
             .joinToString("\n")
-            .replace(Regex("\n{3,}"), "\n\n")
+            .replace(EXCESS_LINE_BREAKS, "\n\n")
             .trim()
     }
 
     fun label(value: String): String = render(value).replace('\n', ' ')
+
+    private companion object {
+        val HORIZONTAL_WHITESPACE = Regex("[ \t]+")
+        val EXCESS_LINE_BREAKS = Regex("\n{3,}")
+    }
 }

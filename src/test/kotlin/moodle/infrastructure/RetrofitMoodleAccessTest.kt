@@ -70,6 +70,17 @@ class RetrofitMoodleAccessTest {
         }
     }
 
+    @Test
+    fun `HTTP unauthorized status invalidates authentication without exposing its body`() {
+        withServer("private response", 401) { access, _ ->
+            val error = assertFailsWith<MoodleException.Authentication> {
+                access.getSiteInfo(AccessToken("a".repeat(32)))
+            }
+            assertEquals("error.session.expired", error.messageKey)
+            assertFalse(error.toString().contains("private response"))
+        }
+    }
+
     private fun withServer(response: String, status: Int = 200, test: (RetrofitMoodleAccess, List<Request>) -> Unit) {
         val requests = mutableListOf<Request>()
         val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)

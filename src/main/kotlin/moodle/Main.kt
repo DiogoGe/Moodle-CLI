@@ -31,9 +31,9 @@ fun main(args: Array<String>) {
 }
 
 private fun createCli(messages: Messages, useKeychain: Boolean): MoodleCli {
-    val application = createMoodleApplication(useKeychain)
+    val config = MoodleConfig()
+    val application = createMoodleApplication(useKeychain, config)
     val access = application.access
-    val config = MoodleConfig(baseUrl = "https://moodle.zhaw.ch/")
     val clock = Clock.systemDefaultZone()
     val study = StudyCommands(
         CourseCommands(application.courses, messages = messages)::run,

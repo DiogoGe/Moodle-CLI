@@ -14,6 +14,7 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.test.Test
@@ -33,6 +34,12 @@ class MoodleMcpServerTest {
         val output = PipedOutputStream(responses)
         val server = executor.submit { runBlocking { MoodleMcpServer(fixture.tools).serve(input, output) } }
         val reader = responses.bufferedReader()
+        val downloading = CountDownLatch(1)
+        val releaseDownload = CountDownLatch(1)
+        fixture.beforeDownload = {
+            downloading.countDown()
+            check(releaseDownload.await(5, TimeUnit.SECONDS))
+        }
         try {
             send(
                 client,
@@ -52,16 +59,30 @@ class MoodleMcpServerTest {
                 ?.jsonObject
                 ?.get("tools")
                 ?.jsonArray
-            assertEquals(7, tools?.size)
+            assertEquals(8, tools?.size)
             send(client, 3, "tools/call", """{"name":"list_courses","arguments":{"limit":1}}""")
             val reply = Json.parseToJsonElement(reader.readLine()).jsonObject
             assertEquals("3", reply["id"].toString())
             val data = reply["result"]?.jsonObject?.get("structuredContent")?.jsonObject
             assertEquals(1, data?.get("items")?.jsonArray?.size)
             assertFalse(reply.toString().contains(fixture.token))
+            send(
+                client,
+                4,
+                "tools/call",
+                """{"name":"download_course_file","arguments":{"course_id":1,"module_id":5,"file_number":1}}"""
+            )
+            assertTrue(downloading.await(5, TimeUnit.SECONDS))
+            send(client, 5, "tools/call", """{"name":"list_courses","arguments":{"limit":1}}""")
+            assertEquals("5", Json.parseToJsonElement(reader.readLine()).jsonObject["id"].toString())
+            releaseDownload.countDown()
+            val download = Json.parseToJsonElement(reader.readLine()).jsonObject
+            assertEquals("4", download["id"].toString())
+            assertEquals("false", download["result"]?.jsonObject?.get("isError").toString())
             client.close()
             server.get(5, TimeUnit.SECONDS)
         } finally {
+            releaseDownload.countDown()
             client.close()
             input.close()
             output.close()

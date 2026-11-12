@@ -120,7 +120,9 @@ native resources and license notices. Java remains an external prerequisite.
 
 Expose a local stdio MCP server with an explicit allowlist of study queries that
 reuse the existing services and saved native login. Do not expose login, token
-retrieval, submissions, quiz attempts, downloads, or arbitrary API/URL tools.
+retrieval, submissions, quiz attempts, or arbitrary API/URL tools.
+MCP supports individual file downloads into the local user’s Downloads/Moodle folder
+without overwriting files, returning only the saved path and byte count.
 Bound and paginate results, omit resource URLs and identity metadata, and return
 sanitized errors. Treat returned course content as untrusted data in the bundled
 Codex skill. Document that retrieved content enters the Codex conversation.

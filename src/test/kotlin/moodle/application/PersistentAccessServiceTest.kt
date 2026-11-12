@@ -19,6 +19,7 @@ class PersistentAccessServiceTest {
     private var validations = 0
     private var responseSite = site
     private var expired = false
+    private var functions = setOf("mod_quiz_get_quizzes_by_courses")
     private var disconnected = false
     private val backend = object : MoodleAccess {
         override fun getPublicStatus(): PublicStatus = error("Not used")
@@ -27,7 +28,7 @@ class PersistentAccessServiceTest {
             validations++
             if (expired) throw MoodleException.Authentication("error.session.expired")
             if (disconnected) throw MoodleException.Connection("error.api.connection")
-            return SiteInfo(responseSite, "Moodle", 42, "User", setOf("mod_quiz_get_quizzes_by_courses"))
+            return SiteInfo(responseSite, "Moodle", 42, "User", functions)
         }
     }
 
@@ -124,6 +125,32 @@ class PersistentAccessServiceTest {
         assertEquals(token, store.values[site])
         assertEquals(0, store.deletes)
         assertEquals(0, store.writes)
+    }
+
+    @Test
+    fun `health refreshes the capabilities of an existing session`() {
+        val access = service()
+        access.login(token)
+        functions = setOf("core_enrol_get_users_courses")
+        access.getAuthenticatedStatus()
+        assertEquals(functions, access.getAvailableFunctions())
+        assertEquals(1, store.writes)
+    }
+
+    @Test
+    fun `expired authentication remains primary when deleting saved credentials fails`() {
+        val access = service()
+        access.login(token)
+        store.rejectDeletes = true
+        expired = true
+        val error = assertFailsWith<MoodleException.Authentication> { access.getAuthenticatedStatus() }
+        assertEquals("error.session.expired", error.messageKey)
+        assertEquals("error.credentials.delete", (error.suppressed.single() as MoodleException).messageKey)
+        assertTrue(access.getAvailableFunctions().isEmpty())
+
+        var featureCalled = false
+        assertFailsWith<MoodleException.Authentication> { access.withSession { _, _ -> featureCalled = true } }
+        assertEquals(false, featureCalled)
     }
 
     private fun service(): AccessService = AccessService(backend, site, store)

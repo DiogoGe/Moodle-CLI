@@ -12,6 +12,7 @@
 | JNA and JNA Platform | Native macOS/Windows credential APIs and Windows browser pipes without secret command-line arguments. |
 | jsoup | Parse course HTML locally into readable terminal text without executing scripts or fetching resources. |
 | SLF4J NOP | Disable SDK logging so protocol output and private request details are not written to logs. |
+| kotlinx.coroutines | Bound concurrent MCP calls, dispatch blocking work to IO threads, and propagate cancellation. |
 | MCP Kotlin server SDK | MCP protocol, schemas, and stdio lifecycle for the optional local Codex integration. |
 | Kotlin Test with JUnit | Support automated tests. |
 

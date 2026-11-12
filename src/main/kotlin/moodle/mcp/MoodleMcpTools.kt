@@ -5,9 +5,9 @@ import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.Tool
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runInterruptible
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -18,17 +18,18 @@ import moodle.domain.exceptions.MoodleException
 internal class MoodleMcpTools(application: MoodleApplication, private val messages: Messages) {
     val tools: List<Tool> = McpSchemas.tools()
     private val queries = MoodleQueries(application)
-    private val sessionLock = Mutex()
+    private val calls = Semaphore(MAX_CONCURRENT_CALLS)
 
-    suspend fun call(name: String, arguments: JsonObject): CallToolResult = sessionLock.withLock {
-        withContext(Dispatchers.IO) {
+    suspend fun call(name: String, arguments: JsonObject): CallToolResult = calls.withPermit {
+        runInterruptible(Dispatchers.IO) {
             try {
                 val input = validatedArguments(name, arguments)
                 val data = queries.execute(name, input)
-                if (data.toString().toByteArray(Charsets.UTF_8).size > MAX_RESULT_BYTES) {
+                val text = data.toString()
+                if (text.toByteArray(Charsets.UTF_8).size > MAX_RESULT_BYTES) {
                     failure("error.mcp.resultTooLarge", messages.text("error.mcp.resultTooLarge"))
                 } else {
-                    result(data)
+                    result(data, text = text)
                 }
             } catch (error: CancellationException) {
                 throw error
@@ -50,8 +51,8 @@ internal class MoodleMcpTools(application: MoodleApplication, private val messag
         return McpArguments(arguments, properties.keys)
     }
 
-    private fun result(data: JsonObject, error: Boolean = false): CallToolResult =
-        CallToolResult(content = listOf(TextContent(data.toString())), structuredContent = data, isError = error)
+    private fun result(data: JsonObject, error: Boolean = false, text: String = data.toString()): CallToolResult =
+        CallToolResult(content = listOf(TextContent(text)), structuredContent = data, isError = error)
 
     private fun failure(code: String, message: String): CallToolResult = result(
         buildJsonObject {
@@ -67,6 +68,7 @@ internal class MoodleMcpTools(application: MoodleApplication, private val messag
     )
 
     private companion object {
+        const val MAX_CONCURRENT_CALLS = 4
         const val MAX_RESULT_BYTES = 262144
     }
 }

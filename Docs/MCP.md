@@ -14,11 +14,12 @@ output. It opens no HTTP listener and accepts no remote connections.
 | `list_courses` | List enrolled courses with IDs and names. |
 | `get_course_contents` | List course activities, text previews, and file metadata without file URLs. |
 | `read_course_text` | Read a selected activity's plain text, including accessible Moodle Page content. |
+| `download_course_file` | Save a selected file to the local user’s Downloads/Moodle folder and return its path and byte count. |
 | `list_assignments` | List assignments and available submission status, optionally filtered by course. |
 | `upcoming_assignments` | List Assignment deadlines in the next elapsed days. |
 | `list_quizzes` | List quiz schedule and time-limit metadata without starting attempts. |
 
-There are no MCP tools for login, logout, downloads, assignment submissions, quiz
+There are no MCP tools for login, logout, assignment submissions, quiz
 attempts, arbitrary URLs, or arbitrary Moodle API functions. These boundaries do
 not change the existing CLI's separate commands.
 
@@ -127,6 +128,14 @@ See the official [Codex MCP documentation](https://learn.chatgpt.com/docs/extend
 
 ## Query behavior
 
+- `download_course_file` requires positive `course_id`, `module_id`, and one-based
+  `file_number` from course contents. It saves into `~/Downloads/Moodle`
+  (`%USERPROFILE%\Downloads\Moodle` on Windows), never overwrites files, and uses
+  the CLI’s 512 MiB limit and protected download transport. It returns only a local
+  path and byte count, not the file contents. No arbitrary URL or destination is accepted.
+  Unlike queries, this tool declares local write effects in its MCP annotations.
+
+
 - List tools accept `offset` and `limit`: the default limit is 25, with a maximum
   of 100. `next_offset` is null at the end. Pagination limits presentation; Moodle
   may still return the underlying list in one API request.
@@ -153,8 +162,13 @@ See the official [Codex MCP documentation](https://learn.chatgpt.com/docs/extend
 
 Tokens stay in the OS credential store and the local JVM. Existing site validation,
 HTTPS POST transport, permission checks, bounded read retries, and expired-token
-cleanup are shared with the CLI. Tool calls within one MCP process are serialized
-so they do not race the shared session state. Standard output is reserved for MCP;
+cleanup are shared with the CLI. Up to four tool calls run concurrently within one MCP process;
+additional calls suspend until a slot is free. Downloads share this limit, so one
+download does not block all queries. Initial login restoration and credential-store
+operations remain synchronized. Queued calls are cancellable; active calls signal
+thread interruption, but blocking network/native operations may finish only at
+their own timeout. This is concurrent execution around synchronous adapters, not
+a conversion of every HTTP request to a nonblocking API. Standard output is reserved for MCP;
 no interactive browser or prompt is started by a tool call.
 
 The output uses explicit field mapping rather than serializing internal models.

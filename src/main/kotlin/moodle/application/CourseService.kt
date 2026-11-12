@@ -41,7 +41,10 @@ class CourseService(private val access: AccessService, private val repository: C
 
     private fun findModule(courseId: Long, moduleId: Long): CourseModule {
         validateId(moduleId)
-        return getContents(courseId).flatMap { it.modules }.firstOrNull { it.id == moduleId }
+        return getContents(courseId)
+            .asSequence()
+            .flatMap { it.modules }
+            .firstOrNull { it.id == moduleId }
             ?: throw MoodleException.Input("error.course.module")
     }
 

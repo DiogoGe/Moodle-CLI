@@ -107,8 +107,8 @@ by feature if authentication, downloads, or other capabilities make it too broad
 - Represent distinct application failures with a small sealed hierarchy when error
   handling is implemented. Choose one consistent propagation approach, and do not
   turn failures into empty result lists.
-- Begin with sequential requests and synchronous repository methods. Introduce
-  coroutines when asynchronous work is required, consistently across the call path.
+- Repository methods are synchronous. The MCP boundary runs them on interruptible
+  IO workers, with at most four active tool calls per server. The CLI stays synchronous.
 - Keep output in the CLI and networking in infrastructure. Allow the CLI output
   function to be supplied in tests when output verification is needed.
 
@@ -168,8 +168,8 @@ Course content is not translated. Command names are the same in both languages.
 The optional local MCP server reuses `AccessService`, `CourseService`,
 `AssignmentService`, and `QuizService`. It introduces no MCP dependency into domain
 or application code. `MoodleMcpServer` owns the official SDK's stdio lifecycle;
-`MoodleMcpTools` serializes calls and translates failures. `MoodleQueries` routes
-only explicitly supported read operations, while `McpContent` constructs bounded
+`MoodleMcpTools` bounds concurrent calls with a coroutine semaphore and translates failures. `MoodleQueries` routes
+only explicitly supported queries and local course-file downloads, while `McpContent` constructs bounded
 output from an allowlist of fields. `McpArguments` enforces validation independently
 of the client's JSON Schema handling.
 
@@ -178,3 +178,10 @@ fetches embedded HTML resources. MCP file metadata omits protected resource URLs
 The server loads the existing saved login without exposing authentication tools
 or accepting arbitrary upstream URLs/functions. See [MCP](MCP.md) for the protocol,
 plugin packaging, and privacy boundary when course content enters Codex context.
+
+Concurrent MCP calls share an immutable session snapshot. `AccessService` locks
+credential-store operations and initial session restoration, but executes study
+requests outside that lock. Session generations prevent a delayed authentication
+failure from deleting a newer login; a delayed health response cannot restore an
+ended session. Authentication invalidation affects future calls; requests already
+using a snapshot may still finish.

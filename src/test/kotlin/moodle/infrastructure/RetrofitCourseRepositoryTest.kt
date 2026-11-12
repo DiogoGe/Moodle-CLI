@@ -50,7 +50,7 @@ class RetrofitCourseRepositoryTest {
             assertFalse(error.message.orEmpty().contains("secret-value"))
         }
         withServer("""{"exception":"error","errorcode":"accessexception"}""") { repository, _ ->
-            assertFailsWith<MoodleException.Connection> { repository.getContents(token, 12) }
+            assertFailsWith<MoodleException.Permission> { repository.getContents(token, 12) }
         }
     }
 
@@ -62,6 +62,23 @@ class RetrofitCourseRepositoryTest {
         withServer("", 302) { repository, requests ->
             assertFailsWith<MoodleException.Connection> { repository.getCourses(token, 42) }
             assertEquals(1, requests.size)
+        }
+    }
+
+    @Test
+    fun `HTTP authentication permission and server errors remain distinct`() {
+        withServer("private response", 401) { repository, _ ->
+            val error = assertFailsWith<MoodleException.Authentication> { repository.getCourses(token, 42) }
+            assertEquals("error.session.expired", error.messageKey)
+        }
+        withServer("private response", 403) { repository, _ ->
+            val error = assertFailsWith<MoodleException.Permission> { repository.getContents(token, 12) }
+            assertEquals("error.api.courseAccess", error.messageKey)
+        }
+        withServer("private response", 500) { repository, _ ->
+            val error = assertFailsWith<MoodleException.Connection> { repository.getCourses(token, 42) }
+            assertEquals("error.api.http", error.messageKey)
+            assertFalse(error.toString().contains("private response"))
         }
     }
 

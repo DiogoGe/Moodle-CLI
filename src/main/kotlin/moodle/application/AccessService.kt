@@ -8,56 +8,86 @@ import moodle.domain.interfaces.MoodleAccess
 import moodle.domain.interfaces.TokenStore
 
 class AccessService(private val access: MoodleAccess, private val siteUrl: String, private val tokens: TokenStore? = null) {
-    private var token: AccessToken? = null
-    private var userId: Long? = null
-    private var availableFunctions: Set<String> = emptySet()
+    private val sessionLock = Any()
+    private var session: AuthenticatedSession? = null
+    private var generation = 0L
 
     fun getPublicStatus(): PublicStatus = access.getPublicStatus()
 
-    fun checkStorage() {
+    fun checkStorage() = synchronized(sessionLock) {
         tokens?.checkAvailable()
+        Unit
     }
 
-    fun login(candidate: AccessToken): SiteInfo {
+    fun login(candidate: AccessToken): SiteInfo = synchronized(sessionLock) {
         val info = verify(candidate)
         tokens?.save(siteUrl, candidate)
         activate(candidate, info)
-        return info
+        info
     }
 
     fun getAuthenticatedStatus(): SiteInfo? {
-        if (token == null) return restore()
-        return authenticated { current, _ -> verify(current) }
+        val current = synchronized(sessionLock) {
+            session ?: return restore()?.info
+        }
+        return authenticated(current) {
+            val info = verify(current.token)
+            synchronized(sessionLock) {
+                if (session?.generation == current.generation) {
+                    session = AuthenticatedSession(current.generation, current.token, info)
+                }
+            }
+            info
+        }
     }
 
     fun <T> withSession(action: (AccessToken, Long) -> T): T {
-        if (token == null) restore()
-        return authenticated(action)
+        val current = synchronized(sessionLock) {
+            session ?: restore() ?: throw MoodleException.Authentication("error.session.required")
+        }
+        return authenticated(current) { action(current.token, current.info.userId) }
     }
 
-    fun getAvailableFunctions(): Set<String> = availableFunctions
-
-    fun endSession() {
-        token = null
-        userId = null
-        availableFunctions = emptySet()
+    fun getAvailableFunctions(): Set<String> = synchronized(sessionLock) {
+        session
+            ?.info
+            ?.functions
+            .orEmpty()
+            .toSet()
     }
 
-    fun logout() {
-        endSession()
+    fun endSession() = synchronized(sessionLock) {
+        session = null
+    }
+
+    fun logout() = synchronized(sessionLock) {
+        session = null
         tokens?.delete(siteUrl)
+        Unit
     }
 
-    private fun restore(): SiteInfo? {
+    // Called under sessionLock so concurrent first requests restore and verify a saved login only once.
+    private fun restore(): AuthenticatedSession? {
         val candidate = tokens?.load(siteUrl) ?: return null
         try {
-            val info = verify(candidate)
-            activate(candidate, info)
-            return info
+            activate(candidate, verify(candidate))
+            return session
         } catch (error: MoodleException.Authentication) {
-            logout()
-            throw error
+            invalidate(null, error)
         }
+    }
+
+    private fun invalidate(current: AuthenticatedSession?, error: MoodleException.Authentication): Nothing {
+        synchronized(sessionLock) {
+            if (session?.generation == current?.generation) {
+                try {
+                    logout()
+                } catch (cleanupError: MoodleException.Credentials) {
+                    error.addSuppressed(cleanupError)
+                }
+            }
+        }
+        throw error
     }
 
     private fun verify(candidate: AccessToken): SiteInfo {
@@ -65,23 +95,18 @@ class AccessService(private val access: MoodleAccess, private val siteUrl: Strin
         if (info.siteUrl.trimEnd('/') != siteUrl.trimEnd('/')) {
             throw MoodleException.Authentication("error.session.siteMismatch")
         }
-        return info
+        return info.copy(functions = info.functions.toSet())
     }
 
     private fun activate(candidate: AccessToken, info: SiteInfo) {
-        token = candidate
-        userId = info.userId
-        availableFunctions = info.functions.toSet()
+        session = AuthenticatedSession(++generation, candidate, info)
     }
 
-    private fun <T> authenticated(action: (AccessToken, Long) -> T): T {
-        val current = token ?: throw MoodleException.Authentication("error.session.required")
-        val user = userId ?: throw MoodleException.Authentication("error.session.required")
+    private fun <T> authenticated(current: AuthenticatedSession, action: () -> T): T {
         try {
-            return action(current, user)
+            return action()
         } catch (error: MoodleException.Authentication) {
-            logout()
-            throw error
+            invalidate(current, error)
         }
     }
 }

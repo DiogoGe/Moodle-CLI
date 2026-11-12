@@ -7,12 +7,14 @@ mcp-sdk = "0.16.0"
 slf4j = "2.0.18"
 retrofit = "3.0.0"
 kotlinx-serialization = "1.11.0"
+kotlinx-coroutines = "1.11.0"
 junit-platform = "1.14.0"
 jsoup = "1.23.2"
 
 jna = "5.19.1"
 
 [libraries]
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 mcp-server = { module = "io.modelcontextprotocol:kotlin-sdk-server", version.ref = "mcp-sdk" }
 slf4j-nop = { module = "org.slf4j:slf4j-nop", version.ref = "slf4j" }
 jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }

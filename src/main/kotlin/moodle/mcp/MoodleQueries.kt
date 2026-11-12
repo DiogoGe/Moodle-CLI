@@ -6,6 +6,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import moodle.MoodleApplication
 import moodle.domain.exceptions.MoodleException
+import java.nio.file.Path
 
 internal class MoodleQueries(private val application: MoodleApplication) {
     private val content = McpContent()
@@ -15,6 +16,7 @@ internal class MoodleQueries(private val application: MoodleApplication) {
         "list_courses" -> McpPage(arguments).render(application.courses.getCourses(), content::course)
         "get_course_contents" -> courseContents(arguments)
         "read_course_text" -> readText(arguments)
+        "download_course_file" -> download(arguments)
         "list_assignments" -> assignments(arguments)
         "upcoming_assignments" -> upcoming(arguments)
         "list_quizzes" -> quizzes(arguments)
@@ -50,6 +52,18 @@ internal class MoodleQueries(private val application: MoodleApplication) {
         return content.read(application.courses.readText(arguments.id("course_id"), arguments.id("module_id")), arguments)
     }
 
+    private fun download(arguments: McpArguments): JsonObject {
+        val courseId = arguments.id("course_id")
+        val moduleId = arguments.id("module_id")
+        val fileNumber = arguments.requiredNumber("file_number", 1, Int.MAX_VALUE)
+        val directory = Path.of(System.getProperty("user.home"), "Downloads", "Moodle").toString()
+        val file = application.courses.download(courseId, moduleId, fileNumber, directory)
+        return buildJsonObject {
+            put("path", file.path)
+            put("bytes", file.bytes)
+        }
+    }
+
     private fun assignments(arguments: McpArguments): JsonObject {
         val page = McpPage(arguments)
         val result = application.assignments.getAssignments(arguments.optionalId("course_id"))
@@ -58,8 +72,7 @@ internal class MoodleQueries(private val application: MoodleApplication) {
 
     private fun upcoming(arguments: McpArguments): JsonObject {
         val page = McpPage(arguments)
-        val days = arguments.number("days", 0, 1, 366)
-        if (days == 0) throw MoodleException.Input("error.mcp.arguments")
+        val days = arguments.requiredNumber("days", 1, 366)
         val result = application.assignments.getUpcoming(days)
         return JsonObject(page.render(result.items, content::assignment) + ("partial" to JsonPrimitive(result.partial)))
     }

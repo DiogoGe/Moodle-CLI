@@ -16,7 +16,7 @@ internal class UnixChromeTransport(arguments: List<String>) : ChromeTransport {
         process = builder.start()
     }
 
-    override val input: InputStream get() = process.inputStream
+    override val input: InputStream = process.inputStream.buffered()
     override val output: OutputStream get() = process.outputStream
     override val isAlive: Boolean get() = process.isAlive
 

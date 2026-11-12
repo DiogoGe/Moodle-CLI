@@ -30,6 +30,7 @@ internal class RetrofitMoodleAccess(private val api: MoodleApi, private val json
     private fun loadPublicConfig(): PublicConfigDto {
         val response = api.getPublicConfig(listOf(PublicConfigRequestDto())).execute()
         if (!response.isSuccessful) {
+            response.errorBody()?.close()
             throw MoodleException.Connection("error.api.publicHttp", response.code())
         }
         val envelope = response.body()?.singleOrNull()
@@ -41,6 +42,8 @@ internal class RetrofitMoodleAccess(private val api: MoodleApi, private val json
     private fun loadSiteInfo(token: AccessToken): JsonObject {
         val response = api.getSiteInfo(token.value).executeMoodleRead()
         if (!response.isSuccessful) {
+            response.errorBody()?.close()
+            if (response.code() == 401) throw MoodleException.Authentication("error.session.expired")
             throw MoodleException.Connection("error.api.authHttp", response.code())
         }
         return response.body() ?: throw MoodleException.Connection("error.api.empty")

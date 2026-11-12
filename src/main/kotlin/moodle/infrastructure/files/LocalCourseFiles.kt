@@ -6,6 +6,7 @@ import moodle.domain.entities.DownloadedFile
 import moodle.domain.exceptions.MoodleException
 import moodle.domain.interfaces.CourseFiles
 import java.io.InputStream
+import java.io.OutputStream
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
@@ -41,29 +42,34 @@ internal class LocalCourseFiles(private val client: MoodleFileClient) : CourseFi
             throw MoodleException.Download("error.download.exists")
         }
         try {
-            val bytes = output.use { stream ->
-                var total = 0L
-                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-                while (true) {
-                    val count = input.read(buffer)
-                    if (count == -1) break
-                    total += count
-                    if (total > MAX_DOWNLOAD_BYTES) throw MoodleException.Download("error.download.tooLarge")
-                    stream.write(buffer, 0, count)
-                }
-                total
-            }
+            val bytes = output.use { stream -> copyBounded(input, stream) }
             return DownloadedFile(target.toString(), bytes)
         } catch (error: Exception) {
-            Files.deleteIfExists(target)
+            try {
+                Files.deleteIfExists(target)
+            } catch (cleanupError: java.io.IOException) {
+                error.addSuppressed(cleanupError)
+            }
             throw error
+        }
+    }
+
+    private fun copyBounded(input: InputStream, output: OutputStream): Long {
+        var total = 0L
+        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+        while (true) {
+            val count = input.read(buffer)
+            if (count == -1) return total
+            total += count
+            if (total > MAX_DOWNLOAD_BYTES) throw MoodleException.Download("error.download.tooLarge")
+            output.write(buffer, 0, count)
         }
     }
 
     private fun validateFileName(name: String) {
         val deviceName = name.substringBefore('.').trimEnd(' ').uppercase(java.util.Locale.ROOT)
         val reserved = deviceName in setOf("CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$") ||
-            Regex("(?:COM|LPT)[1-9¹²³]").matches(deviceName)
+            RESERVED_DEVICE_NAME.matches(deviceName)
         val unsafe =
             reserved || name.isBlank() || name in setOf(".", "..") || name.any { it.isISOControl() || it in "\\/:*?\"<>|" }
         if (unsafe || name.endsWith('.') || name.endsWith(' ')) {
@@ -72,6 +78,7 @@ internal class LocalCourseFiles(private val client: MoodleFileClient) : CourseFi
     }
 
     private companion object {
+        val RESERVED_DEVICE_NAME = Regex("(?:COM|LPT)[1-9¹²³]")
         const val MAX_DOWNLOAD_BYTES = 512L * 1024 * 1024
         const val MAX_TEXT_BYTES = 2 * 1024 * 1024
     }

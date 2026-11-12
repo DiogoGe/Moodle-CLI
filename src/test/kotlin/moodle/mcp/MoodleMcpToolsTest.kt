@@ -16,13 +16,14 @@ class MoodleMcpToolsTest {
     private val fixture = McpFixture()
 
     @Test
-    fun `only explicit read tools are exposed and pagination preserves IDs`() = runBlocking {
+    fun `only explicit tools are exposed and pagination preserves IDs`() = runBlocking {
         assertEquals(
             setOf(
                 "health",
                 "list_courses",
                 "get_course_contents",
                 "read_course_text",
+                "download_course_file",
                 "list_assignments",
                 "upcoming_assignments",
                 "list_quizzes"
@@ -31,7 +32,11 @@ class MoodleMcpToolsTest {
                 .map { it.name }
                 .toSet()
         )
-        assertTrue(fixture.tools.tools.all { it.annotations?.readOnlyHint == true })
+        assertTrue(
+            fixture.tools.tools
+                .filter { it.name != "download_course_file" }
+                .all { it.annotations?.readOnlyHint == true }
+        )
         val first = call("list_courses")
         assertEquals("25", first["next_offset"].toString())
         assertEquals(25, first["items"]?.jsonArray?.size)
@@ -59,7 +64,10 @@ class MoodleMcpToolsTest {
         val health = call("health").toString()
         assertFalse(health.contains("Private student name"))
         assertFalse(health.contains("user_id"))
-        val text = call("read_course_text", """{"course_id":1,"module_id":5}""").toString()
+        val text = call(
+            "read_course_text",
+            """{"course_id":1,"module_id":5}"""
+        ).toString()
         // A page's protected index.html is read through the normal course service, not exposed as a URL.
         assertFalse(text.contains("private script"))
     }
@@ -124,6 +132,37 @@ class MoodleMcpToolsTest {
         assertEquals(true, result.isError)
         assertTrue(result.structuredContent.toString().contains("error.mcp.resultTooLarge"))
         assertTrue(result.toString().length < 1000)
+    }
+
+    @Test
+    fun `download selects a known file and reports only its local path and size`() = runBlocking {
+        val result = call("download_course_file", """{"course_id":1,"module_id":5,"file_number":1}""")
+        assertEquals("notes.pdf", fixture.downloadedFile)
+        assertEquals(
+            java.nio.file.Path
+                .of(System.getProperty("user.home"), "Downloads", "Moodle", "notes.pdf")
+                .toString(),
+            result["path"]?.jsonPrimitive?.content
+        )
+        assertEquals("123", result["bytes"].toString())
+        assertFalse(result.toString().contains(fixture.token))
+        assertFalse(result.toString().contains("pluginfile.php"))
+        val annotations = fixture.tools.tools
+            .single { it.name == "download_course_file" }
+            .annotations
+        assertEquals(false, annotations?.readOnlyHint)
+        assertEquals(false, annotations?.destructiveHint)
+        assertEquals(false, annotations?.idempotentHint)
+    }
+
+    @Test
+    fun `invalid download arguments cannot cause network or filesystem access`() = runBlocking {
+        for (extra in listOf("", ""","file_number":0""", ""","file_number":"1" """, ""","file_number":1,"directory":"/tmp" """)) {
+            val result = fixture.tools.call("download_course_file", objectOf("""{"course_id":1,"module_id":5$extra}"""))
+            assertEquals(true, result.isError)
+        }
+        assertEquals(0, fixture.courseCalls)
+        assertEquals(null, fixture.downloadedFile)
     }
 
     private suspend fun call(name: String, arguments: String = "{}"): JsonObject {

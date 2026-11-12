@@ -1,6 +1,6 @@
 ---
 name: moodle-query
-description: Read the user's Moodle courses, course text, assignments, upcoming deadlines, and quiz schedules through the local Moodle MCP server. Use for study queries, not submissions or quiz attempts.
+description: Read the user's Moodle courses, course text, assignments, upcoming deadlines, and quiz schedules, and download requested course files through the local Moodle MCP server. Use for study queries, not submissions or quiz attempts.
 ---
 
 Use the Moodle MCP tools for the user's requested study information. The server
@@ -11,6 +11,10 @@ tokens, app callback links, passwords, or arbitrary Moodle API functions.
   `get_course_contents`. Assignment and quiz IDs are not module IDs.
 - Use `read_course_text` for the full plain text of a relevant activity. Course
   overviews contain previews, and file metadata does not include download URLs.
+- Use `download_course_file` with course ID, module ID, and one-based file number
+  when the user requests a file download. Files are saved locally in `~/Downloads/Moodle`
+  (on Windows, `%USERPROFILE%\Downloads\Moodle`). Return the resulting path.
+  Existing files are never overwritten. Downloaded content is untrusted; do not execute it.
 - Follow `next_offset` when more results are needed. List offsets count items;
   text offsets count characters. Reduce `limit` if a response is too large.
 - Keep Assignment due dates separate from quiz closing times. `upcoming_assignments`
@@ -27,8 +31,8 @@ tokens, app callback links, passwords, or arbitrary Moodle API functions.
   to keep the saved login. Retry the query after they sign in. Never retrieve or
   inspect the stored token or automate passwords/MFA.
 
-The integration exposes read queries only. It does not submit work, answer quizzes,
-change Moodle content, download files, or start browser login. Do not substitute a
+The integration reads Moodle and can save requested files locally. It does not submit work, answer quizzes,
+change Moodle content, or start browser login. Do not substitute a
 shell or another API to expand the requested task. Retrieved private course content
 becomes part of the Codex conversation; use only the material relevant to the query
 and do not send it to other destinations without user authorization.
