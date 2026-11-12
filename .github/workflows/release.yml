@@ -1,0 +1,99 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Check and package release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      artifact-id: ${{ steps.assets.outputs.artifact-id }}
+
+    steps:
+      - name: Check out tagged commit
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Read release and Java versions
+        id: versions
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Use a release tag in vMAJOR.MINOR.PATCH format." >&2
+            exit 1
+          fi
+          java_version=$(sed -n 's/^javaToolchainVersion=//p' gradle.properties)
+          if [[ ! "$java_version" =~ ^[0-9]+$ ]]; then
+            echo "Set javaToolchainVersion to a Java major version in gradle.properties." >&2
+            exit 1
+          fi
+          printf 'release=%s\njava=%s\n' "${RELEASE_TAG#v}" "$java_version" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ steps.versions.outputs.java }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: true
+
+      - name: Run checks and build release packages
+        env:
+          RELEASE_VERSION: ${{ steps.versions.outputs.release }}
+        run: ./gradlew --no-daemon "-Pversion=$RELEASE_VERSION" check shadowJar codexPluginZip
+
+      - name: Verify and collect release files
+        run: |
+          java -jar build/libs/moodle.jar --help
+          mkdir -p release-assets
+          cp build/libs/moodle.jar build/distributions/moodle-codex-plugin.zip release-assets/
+
+      - name: Upload release files
+        id: assets
+        uses: actions/upload-artifact@v7
+        with:
+          name: moodle-release-${{ github.run_attempt }}
+          path: release-assets/
+          if-no-files-found: error
+          compression-level: 0
+
+  publish:
+    name: Publish GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download verified release files
+        uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: release-assets
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            --verify-tag --generate-notes --title "$RELEASE_TAG" \
+            release-assets/moodle.jar release-assets/moodle-codex-plugin.zip

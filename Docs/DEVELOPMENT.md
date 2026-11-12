@@ -100,6 +100,22 @@ and shareable ZIP. Plugin templates live under `plugins/moodle/`; the generated 
 contains a copy of the standalone JAR and takes its version from build configuration.
 See [MCP](MCP.md) for installation, tool behavior, authentication, and validation.
 
+## Publish a release
+
+After the release workflow and the changes to ship are on GitHub, tag the commit
+you want to release and push that tag. For example, from the up-to-date default branch:
+
+```sh
+git tag -a v0.1.0 -m "Moodle CLI v0.1.0"
+git push origin v0.1.0
+```
+
+The [release workflow](../.github/workflows/release.yml) accepts tags in
+`vMAJOR.MINOR.PATCH` format. It uses the tag version for both the executable JAR
+and the Codex plugin manifest, overriding the development version for that build.
+It runs style checks and tests before publishing `moodle.jar` and
+`moodle-codex-plugin.zip` under [GitHub Releases](https://github.com/DiogoGe/Moodle-CLI/releases).
+
 ## Source layout
 
 ```text

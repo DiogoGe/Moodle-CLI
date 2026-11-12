@@ -21,7 +21,9 @@ It contains no account credentials or downloaded course materials.
 
 ### Standalone JAR
 
-Place `moodle.jar` in a directory of your choice and open a terminal there:
+Download `moodle.jar` from the Assets section of a
+[GitHub release](https://github.com/DiogoGe/Moodle-CLI/releases).
+Place the JAR in a directory of your choice and open a terminal there:
 
 ```sh
 java -jar moodle.jar --help

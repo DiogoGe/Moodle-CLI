@@ -22,8 +22,8 @@ It currently targets `https://moodle.zhaw.ch/`.
 ## Quick start
 
 You need Java matching the toolchain in [gradle.properties](gradle.properties),
-a real terminal, and Chrome for automatic login. Once you have built or received
-`moodle.jar`, run:
+a real terminal, and Chrome for automatic login. Download `moodle.jar` from
+[GitHub Releases](https://github.com/DiogoGe/Moodle-CLI/releases) and run:
 
 ```sh
 java -jar moodle.jar --lang de login

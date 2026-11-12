@@ -71,7 +71,13 @@ Java remains an external prerequisite.
 
 ## Install in Codex
 
-From the repository root, with the Codex CLI available:
+Download `moodle-codex-plugin.zip` from [GitHub Releases](https://github.com/DiogoGe/Moodle-CLI/releases)
+and extract it to a directory you will keep. With the Codex CLI available, pass the
+extracted directory containing `.agents/plugins/marketplace.json` to
+`codex plugin marketplace add`, then run `codex plugin add moodle@moodle-local`.
+For the sign-in command, you can use the bundled `plugins/moodle/server/moodle.jar`.
+
+If you built the plugin from source, run these commands from the repository root:
 
 ```sh
 codex plugin marketplace add ./build/codex-plugin
@@ -86,8 +92,6 @@ The plugin launches its own JAR copy using `${PLUGIN_ROOT}`, so it does not rely
 a particular repository checkout or working directory. Local installation copies
 the plugin into Codex's managed cache. Keep or rebuild the source marketplace before
 refreshing it: `./gradlew clean` removes the generated source under `build/`.
-When sharing the ZIP, extract it to a persistent directory and register that directory
-as the marketplace instead.
 
 Example requests:
 
@@ -95,8 +99,8 @@ Example requests:
 - “Find my programming course and summarize its introduction page.”
 - “List the quizzes available in this course and their closing times.”
 
-Local plugins are separate from publishing to the public plugin directory. This
-project does not submit or publish the plugin automatically. See the official
+GitHub Releases distributes the local plugin bundle. Publishing to the public
+Codex plugin directory requires a separate submission. See the official
 [plugin packaging guide](https://developers.openai.com/plugins/build/plugins).
 
 ### MCP-only alternative
