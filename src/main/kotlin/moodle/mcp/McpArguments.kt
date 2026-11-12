@@ -15,6 +15,12 @@ internal class McpArguments(private val values: JsonObject, allowed: Set<String>
 
     fun optionalId(name: String): Long? = integer(name)?.takeIf { it > 0 } ?: if (name in values) invalid() else null
 
+    fun requiredString(name: String): String {
+        val value = values[name] as? JsonPrimitive ?: invalid()
+        if (!value.isString) invalid()
+        return value.content
+    }
+
     fun requiredNumber(name: String, minimum: Int, maximum: Int): Int =
         boundedNumber(integer(name) ?: invalid(), minimum, maximum)
 

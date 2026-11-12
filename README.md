@@ -10,6 +10,7 @@ controls which courses and activities they can access.
 ## Features
 
 - Browse enrolled courses, sections, descriptions, and text pages.
+- Search course titles, activities, and file names across enrolled courses.
 - Download individual course files without overwriting existing files.
 - List assignments, submission status, and upcoming deadlines.
 - List quizzes separately, including available schedule and time-limit information.

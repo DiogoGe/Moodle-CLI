@@ -3,11 +3,13 @@ package moodle.mcp
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import moodle.domain.entities.Assignment
 import moodle.domain.entities.Course
+import moodle.domain.entities.CourseSearchHit
 import moodle.domain.entities.Quiz
 import moodle.presentation.PlainText
 
@@ -18,6 +20,36 @@ internal class McpContent {
     fun course(course: Course): JsonObject = buildJsonObject {
         put("id", course.id)
         put("name", text.label(course.name).take(1000))
+    }
+
+    fun searchHit(hit: CourseSearchHit): JsonObject = buildJsonObject {
+        when (hit) {
+            is CourseSearchHit.CourseTitle -> {
+                put("kind", "course")
+                putCourseContext(hit.course)
+            }
+            is CourseSearchHit.Activity -> {
+                put("kind", "activity")
+                putActivityContext(hit)
+            }
+            is CourseSearchHit.File -> {
+                put("kind", "file")
+                putActivityContext(hit.activity)
+                put("file_number", hit.number)
+                put("file_name", text.label(hit.name).take(1000))
+            }
+        }
+    }
+
+    private fun JsonObjectBuilder.putCourseContext(course: Course) {
+        put("course_id", course.id)
+        put("course_name", text.label(course.name).take(1000))
+    }
+
+    private fun JsonObjectBuilder.putActivityContext(activity: CourseSearchHit.Activity) {
+        putCourseContext(activity.course)
+        put("module_id", activity.id)
+        put("activity_name", text.label(activity.name).take(1000))
     }
 
     fun activity(activity: McpActivity): JsonObject = buildJsonObject {

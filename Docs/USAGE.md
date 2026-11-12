@@ -26,6 +26,7 @@ Memory-only sessions must stay in the same process; see [Saved login](GETTING_ST
 | `logout` | Clear the active session and remove this application's saved login. |
 | `courses` | List enrolled courses with IDs and names. |
 | `course <course-id>` | Show accessible sections, activity descriptions, inline text, and numbered files. |
+| `search <keywords>` | Search enrolled course titles, activity names, and file names. |
 | `read <course-id> <module-id>` | Read an activity's text, including the content of Moodle Page resources. |
 | `download <course-id> <module-id> <file-number> [directory]` | Save one listed file. |
 | `assignments [--course <course-id>]` | List assignments, due dates, and available submission status. |
@@ -56,6 +57,18 @@ resources where available. HTML is parsed locally into plain text. Scripts and
 terminal control characters are removed; embedded resources are not fetched by
 the HTML renderer. Other activity types may appear in the overview without having
 a dedicated reader. The CLI does not retrieve quiz attempt questions.
+
+## Search across courses
+
+```text
+search recursion slides
+```
+
+Each keyword must appear in the same course title, activity name, or file name.
+Search ignores case and treats dots, hyphens, and underscores as separators.
+File results include the matching activity, course, and a ready-to-use `download`
+command. Search loads course metadata and reports if Moodle denied access to
+some course contents. It does not read the contents of files or pages.
 
 ## Download a file
 

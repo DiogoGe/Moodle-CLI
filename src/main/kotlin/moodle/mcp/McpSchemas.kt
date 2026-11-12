@@ -6,6 +6,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import moodle.application.CourseSearch
 
 internal object McpSchemas {
     fun tools(): List<Tool> = courseTools() + downloadTools() + assignmentTools() + quizTools()
@@ -13,6 +14,13 @@ internal object McpSchemas {
     private fun courseTools(): List<Tool> = listOf(
         tool("health", "Check Moodle connectivity and saved login availability without exposing identity or credentials."),
         tool("list_courses", "List enrolled Moodle courses. Follow next_offset for additional results.", page()),
+        tool(
+            "search_course_materials",
+            "Search course titles, activity names and file names across enrolled courses. Use short keywords. " +
+                "File results include the IDs and file number for an explicitly requested download.",
+            page() + ("query" to searchQuery()),
+            listOf("query")
+        ),
         tool(
             "get_course_contents",
             "List course activities and file metadata without download URLs. Previews may be shortened.",
@@ -85,6 +93,13 @@ internal object McpSchemas {
     )
 
     private fun id(): JsonObject = integer("Positive Moodle ID. Module IDs come from get_course_contents.", 1, Long.MAX_VALUE)
+
+    private fun searchQuery(): JsonObject = buildJsonObject {
+        put("type", "string")
+        put("description", "Case-insensitive keywords. All terms must appear in the same title or filename.")
+        put("minLength", 1)
+        put("maxLength", CourseSearch.MAX_QUERY_LENGTH)
+    }
 
     private fun integer(description: String, minimum: Long, maximum: Long): JsonObject = buildJsonObject {
         put("type", "integer")

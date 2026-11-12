@@ -2,6 +2,8 @@ package moodle.application
 
 import moodle.domain.entities.Course
 import moodle.domain.entities.CourseModule
+import moodle.domain.entities.CourseSearchHit
+import moodle.domain.entities.CourseSearchResult
 import moodle.domain.entities.CourseSection
 import moodle.domain.entities.DownloadedFile
 import moodle.domain.exceptions.MoodleException
@@ -14,6 +16,26 @@ class CourseService(private val access: AccessService, private val repository: C
     fun getContents(courseId: Long): List<CourseSection> {
         validateId(courseId)
         return access.withSession { token, _ -> repository.getContents(token, courseId) }
+    }
+
+    fun search(query: String): CourseSearchResult {
+        val search = CourseSearch(query)
+        return access.withSession { token, userId ->
+            val hits = mutableListOf<CourseSearchHit>()
+            var skipped = 0
+            for (course in repository.getCourses(token, userId).sortedBy { it.id }) {
+                if (Thread.currentThread().isInterrupted) throw InterruptedException()
+                search.courseTitle(course)?.let(hits::add)
+                val sections = try {
+                    repository.getContents(token, course.id)
+                } catch (_: MoodleException.Permission) {
+                    skipped++
+                    continue
+                }
+                hits.addAll(search.activities(course, sections))
+            }
+            CourseSearchResult(hits, skipped)
+        }
     }
 
     fun readText(courseId: Long, moduleId: Long): String {

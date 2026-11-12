@@ -14,6 +14,7 @@ internal class MoodleQueries(private val application: MoodleApplication) {
     fun execute(name: String, arguments: McpArguments): JsonObject = when (name) {
         "health" -> health()
         "list_courses" -> McpPage(arguments).render(application.courses.getCourses(), content::course)
+        "search_course_materials" -> search(arguments)
         "get_course_contents" -> courseContents(arguments)
         "read_course_text" -> readText(arguments)
         "download_course_file" -> download(arguments)
@@ -43,6 +44,14 @@ internal class MoodleQueries(private val application: MoodleApplication) {
         val activities = sections.flatMap { section -> section.modules.map { McpActivity(section, it) } }
         val page = pagination.render(activities, content::activity)
         return JsonObject(page + ("course_id" to JsonPrimitive(courseId)))
+    }
+
+    private fun search(arguments: McpArguments): JsonObject {
+        val page = McpPage(arguments)
+        val result = application.courses.search(arguments.requiredString("query"))
+        return JsonObject(
+            page.render(result.items, content::searchHit) + ("skipped_courses" to JsonPrimitive(result.skippedCourses))
+        )
     }
 
     private fun readText(arguments: McpArguments): JsonObject {

@@ -1,6 +1,6 @@
 ---
 name: moodle-query
-description: Read the user's Moodle courses, course text, assignments, upcoming deadlines, and quiz schedules, and download requested course files through the local Moodle MCP server. Use for study queries, not submissions or quiz attempts.
+description: Find Moodle course materials, read course text, check assignments and quiz schedules, and download requested files through the local Moodle MCP server. Use for study queries, not submissions or quiz attempts.
 ---
 
 Use the Moodle MCP tools for the user's requested study information. The server
@@ -9,6 +9,9 @@ tokens, app callback links, passwords, or arbitrary Moodle API functions.
 
 - Discover course IDs with `list_courses`; get module IDs and file numbers from
   `get_course_contents`. Assignment and quiz IDs are not module IDs.
+- Use `search_course_materials` to find materials across courses. Query with
+  short topic keywords such as “recursion” instead of the entire user question.
+  File hits include download selectors. Report any skipped courses as incomplete coverage.
 - Use `read_course_text` for the full plain text of a relevant activity. Course
   overviews contain previews, and file metadata does not include download URLs.
 - Use `download_course_file` with course ID, module ID, and one-based file number

@@ -3,6 +3,7 @@ package moodle.cli
 import moodle.application.CourseService
 import moodle.cli.i18n.Messages
 import moodle.domain.entities.CourseModule
+import moodle.domain.entities.CourseSearchHit
 import moodle.domain.exceptions.MoodleException
 import moodle.presentation.PlainText
 
@@ -17,6 +18,7 @@ class CourseCommands(
         when {
             args == listOf("courses") -> showCourses()
             args.size == 2 && args[0] == "course" -> showContents(id(args[1]))
+            args.firstOrNull() == "search" -> search(args.drop(1).joinToString(" "))
             args.size == 3 && args[0] == "read" -> output(text.render(service.readText(id(args[1]), id(args[2]))))
             args.size in 4..5 && args[0] == "download" -> download(args)
             else -> throw MoodleException.Input("error.course.usage")
@@ -37,6 +39,34 @@ class CourseCommands(
             output(messages.text("course.section", text.label(section.name)))
             showText(section.description)
             section.modules.forEach { showModule(courseId, it) }
+        }
+    }
+
+    private fun search(query: String) {
+        val result = service.search(query)
+        if (result.skippedCourses > 0) output(messages.text("search.partial", result.skippedCourses))
+        if (result.items.isEmpty()) output(messages.text("search.empty"))
+        result.items.forEach(::showSearchHit)
+    }
+
+    private fun showSearchHit(hit: CourseSearchHit) {
+        when (hit) {
+            is CourseSearchHit.CourseTitle ->
+                output(messages.text("search.course", text.label(hit.course.name), hit.course.id))
+            is CourseSearchHit.Activity ->
+                output(messages.text("search.activity", text.label(hit.name), text.label(hit.course.name), hit.course.id, hit.id))
+            is CourseSearchHit.File -> {
+                val activity = hit.activity
+                output(
+                    messages.text(
+                        "search.file",
+                        text.label(hit.name),
+                        text.label(activity.name),
+                        text.label(activity.course.name)
+                    )
+                )
+                output(messages.text("course.download", activity.course.id, activity.id, hit.number))
+            }
         }
     }
 

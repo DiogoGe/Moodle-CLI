@@ -42,6 +42,8 @@ native resource ownership, and the limitations of OS credential storage.
 ## Course and material requirements
 
 - List enrolled courses with IDs and names.
+- Search enrolled course titles, accessible activity names, and file names by
+  keyword. Return file selectors and report denied course-content access.
 - Show accessible sections, descriptions, inline text, activities, and numbered files.
 - Read activity text, including the full body of accessible Moodle Page resources.
 - Convert HTML to terminal-safe plain text without executing scripts or fetching

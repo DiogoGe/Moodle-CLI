@@ -48,13 +48,14 @@ class MoodleCliTest {
     }
 
     @Test
-    fun `assignment and quiz commands dispatch with their arguments`() {
+    fun `study commands dispatch with their arguments`() {
         val calls = mutableListOf<List<String>>()
         val cli = MoodleCli(studyCommand = {
             calls.add(it)
             0
         })
         val commands = listOf(
+            listOf("search", "recursion", "slides"),
             listOf("tasks"),
             listOf("tasks", "--course", "42"),
             listOf("assignments", "--course", "42"),

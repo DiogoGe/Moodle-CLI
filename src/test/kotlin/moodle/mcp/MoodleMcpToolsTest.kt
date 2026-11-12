@@ -6,6 +6,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import moodle.domain.entities.Course
 import moodle.fixtures.McpFixture
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -21,6 +22,7 @@ class MoodleMcpToolsTest {
             setOf(
                 "health",
                 "list_courses",
+                "search_course_materials",
                 "get_course_contents",
                 "read_course_text",
                 "download_course_file",
@@ -70,6 +72,21 @@ class MoodleMcpToolsTest {
         ).toString()
         // A page's protected index.html is read through the normal course service, not exposed as a URL.
         assertFalse(text.contains("private script"))
+    }
+
+    @Test
+    fun `search pages expose reusable file selectors without file URLs`() = runBlocking {
+        fixture.courses = listOf(Course(2, "<b>Second course</b>"), Course(1, "First course"))
+        val first = call("search_course_materials", """{"query":"notes pdf","limit":1}""")
+        assertEquals("1", first["next_offset"].toString())
+        val second = call("search_course_materials", """{"query":"notes pdf","limit":1,"offset":1}""")
+        val item = second["items"]?.jsonArray?.single()?.jsonObject
+        assertEquals("2", item?.get("course_id").toString())
+        assertEquals("5", item?.get("module_id").toString())
+        assertEquals("1", item?.get("file_number").toString())
+        assertEquals("Second course", item?.get("course_name")?.jsonPrimitive?.content)
+        assertFalse(second.toString().contains("pluginfile.php"))
+        assertFalse(second.toString().contains(fixture.token))
     }
 
     @Test

@@ -1,18 +1,21 @@
 package moodle.application
 
 import moodle.cli.CourseCommands
+import moodle.cli.i18n.Messages
 import moodle.domain.AccessToken
 import moodle.domain.PublicStatus
 import moodle.domain.SiteInfo
 import moodle.domain.entities.Course
 import moodle.domain.entities.CourseFile
 import moodle.domain.entities.CourseModule
+import moodle.domain.entities.CourseSearchHit
 import moodle.domain.entities.CourseSection
 import moodle.domain.entities.DownloadedFile
 import moodle.domain.exceptions.MoodleException
 import moodle.domain.interfaces.CourseFiles
 import moodle.domain.interfaces.CourseRepository
 import moodle.domain.interfaces.MoodleAccess
+import java.util.Locale
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -78,9 +81,43 @@ class CourseServiceTest {
         assertFailsWith<MoodleException.Authentication> { service.getCourses() }
     }
 
+    @Test
+    fun `search finds course titles activities and files across courses with the original download selector`() {
+        access.login(token)
+        repository.courses = listOf(Course(21, "Mathematics"), Course(12, "Recursion lab"), Course(32, "Restricted"))
+        repository.restrictedCourse = 32
+
+        val result = service.search("rEcUrSiOn")
+        assertEquals(1, result.skippedCourses)
+        assertEquals(CourseSearchHit.CourseTitle(Course(12, "Recursion lab")), result.items[0])
+        val activity = result.items.filterIsInstance<CourseSearchHit.Activity>().single()
+        assertEquals(21L, activity.course.id)
+        val file = result.items.filterIsInstance<CourseSearchHit.File>().single()
+        assertEquals(activity, file.activity)
+        assertEquals(2, file.number)
+
+        val output = mutableListOf<String>()
+        val cli = CourseCommands(service, output::add, Messages(Locale.ENGLISH))
+        assertEquals(0, cli.run(listOf("search", "RECURSION", "slides")))
+        assertTrue(output.any { it.contains("incomplete") })
+        assertTrue(output.any { it.contains("Recursion_Slides.pdf") && it.contains("Mathematics") })
+        assertTrue(output.any { it.trim() == "download 21 56 2" })
+        assertEquals(null, files.selected)
+    }
+
+    @Test
+    fun `invalid search is rejected before listing courses`() {
+        access.login(token)
+        assertFailsWith<MoodleException.Input> { service.search(" - _ ") }
+        assertFailsWith<MoodleException.Input> { service.search("x".repeat(121)) }
+        assertFalse(repository.called)
+    }
+
     private class FakeCourses : CourseRepository {
         var called = false
         var reject = false
+        var courses = listOf(Course(12, "Programming"))
+        var restrictedCourse: Long? = null
         var receivedToken: AccessToken? = null
         var receivedUser: Long? = null
 
@@ -89,10 +126,29 @@ class CourseServiceTest {
             receivedToken = token
             receivedUser = userId
             if (reject) throw MoodleException.Authentication("Expired")
-            return listOf(Course(12, "Programming"))
+            return courses
         }
 
-        override fun getContents(token: AccessToken, courseId: Long): List<CourseSection> = listOf(
+        override fun getContents(token: AccessToken, courseId: Long): List<CourseSection> {
+            if (courseId == restrictedCourse) throw MoodleException.Permission("error.api.courseAccess")
+            if (courseId == 21L) {
+                val module = CourseModule(
+                    56,
+                    "Recursion examples",
+                    "resource",
+                    "",
+                    emptyList(),
+                    listOf(
+                        CourseFile("Outline.pdf", "https://moodle.example/outline", 0, null),
+                        CourseFile("Recursion_Slides.pdf", "https://moodle.example/slides", 0, null)
+                    )
+                )
+                return listOf(CourseSection(2, "Week 2", "", listOf(module)))
+            }
+            return programmingContents()
+        }
+
+        private fun programmingContents(): List<CourseSection> = listOf(
             CourseSection(
                 1,
                 "Week 1",

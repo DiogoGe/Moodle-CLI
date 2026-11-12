@@ -12,6 +12,7 @@ output. It opens no HTTP listener and accepts no remote connections.
 | --- | --- |
 | `health` | Report site configuration and whether a saved login can be used, without returning account identity. |
 | `list_courses` | List enrolled courses with IDs and names. |
+| `search_course_materials` | Find enrolled course titles, activities, and file names by keyword. |
 | `get_course_contents` | List course activities, text previews, and file metadata without file URLs. |
 | `read_course_text` | Read a selected activity's plain text, including accessible Moodle Page content. |
 | `download_course_file` | Save a selected file to the local user’s Downloads/Moodle folder and return its path and byte count. |
@@ -97,6 +98,7 @@ Example requests:
 
 - “Show my assignments due in the next seven days.”
 - “Find my programming course and summarize its introduction page.”
+- “Find the slides on recursion across my courses.”
 - “List the quizzes available in this course and their closing times.”
 
 GitHub Releases distributes the local plugin bundle. Publishing to the public
@@ -132,6 +134,12 @@ See the official [Codex MCP documentation](https://learn.chatgpt.com/docs/extend
 
 ## Query behavior
 
+- `search_course_materials` requires a keyword `query` of up to 120 characters.
+  It matches titles and file names using the same rules as
+  [CLI search](USAGE.md#search-across-courses). File results supply `course_id`,
+  `module_id`, and `file_number` for a requested download. `skipped_courses`
+  counts courses for which Moodle denied content access. Paging repeats the
+  metadata search against Moodle.
 - `download_course_file` requires positive `course_id`, `module_id`, and one-based
   `file_number` from course contents. It saves into `~/Downloads/Moodle`
   (`%USERPROFILE%\Downloads\Moodle` on Windows), never overwrites files, and uses
