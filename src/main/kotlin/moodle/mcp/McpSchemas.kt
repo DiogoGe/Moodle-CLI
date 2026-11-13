@@ -59,7 +59,14 @@ internal object McpSchemas {
             "download_course_files",
             "Download explicitly selected course files to the local user's Downloads/Moodle folder. " +
                 "Use course ID, module ID and file number from search or course contents. Returns a status for each distinct file.",
-            mapOf("files" to fileSelections()),
+            mapOf(
+                "files" to fileSelections(),
+                "organize" to buildJsonObject {
+                    put("type", "boolean")
+                    put("description", "Save in course and activity subfolders when requested. Defaults to false.")
+                    put("default", false)
+                }
+            ),
             listOf("files"),
             readOnly = false
         )

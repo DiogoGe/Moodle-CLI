@@ -41,6 +41,39 @@ class LocalCourseFilesTest {
     }
 
     @Test
+    fun `organized downloads keep identical filenames in different activity folders`() {
+        withServer("fixture bytes") { files, base, directory, _ ->
+            val first = files.download(token, file(base), directory.toString(), listOf("course-12", "activity-34"))
+            val second = files.download(token, file(base), directory.toString(), listOf("course-12", "activity-35"))
+            assertEquals(directory.resolve("course-12/activity-34/test.pdf").toRealPath(), Path.of(first.path))
+            assertEquals(directory.resolve("course-12/activity-35/test.pdf").toRealPath(), Path.of(second.path))
+            assertEquals("fixture bytes", Files.readString(Path.of(first.path)))
+            assertEquals("fixture bytes", Files.readString(Path.of(second.path)))
+        }
+    }
+
+    @Test
+    fun `organized downloads reject symlinked directories before requesting the file`() {
+        withServer("unused") { files, base, directory, requests ->
+            val linked = Files.createDirectory(directory.resolve("linked"))
+            try {
+                Files.createSymbolicLink(directory.resolve("course-12"), linked)
+            } catch (_: java.nio.file.FileSystemException) {
+                org.junit.jupiter.api.Assumptions
+                    .assumeFalse(System.getProperty("os.name").startsWith("Windows"))
+                error("Symbolic link fixture unavailable")
+            }
+
+            val error = assertFailsWith<MoodleException.Download> {
+                files.download(token, file(base), directory.toString(), listOf("course-12", "activity-34"))
+            }
+            assertEquals("error.download.subdirectory", error.messageKey)
+            assertTrue(requests.isEmpty())
+            assertFalse(Files.exists(linked.resolve("activity-34")))
+        }
+    }
+
+    @Test
     fun `existing symlinks are never overwritten`() {
         withServer("replacement") { files, base, directory, _ ->
             val target = Files.writeString(directory.resolve("test.pdf"), "original")

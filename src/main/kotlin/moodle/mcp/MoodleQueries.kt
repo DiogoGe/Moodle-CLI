@@ -82,7 +82,8 @@ internal class MoodleQueries(private val application: MoodleApplication, private
         val selections = arguments
             .requiredObjects("files", CourseService.MAX_BATCH_FILES, McpSchemas.fileSelectionFields)
             .map(::fileSelection)
-        val outcomes = application.courses.downloadMany(selections, downloadDirectory())
+        val organize = arguments.boolean("organize", default = false)
+        val outcomes = application.courses.downloadMany(selections, downloadDirectory(), organize)
         return buildJsonObject { put("items", JsonArray(outcomes.map(::downloadOutcome))) }
     }
 

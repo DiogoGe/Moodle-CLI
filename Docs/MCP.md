@@ -151,8 +151,10 @@ See the official [Codex MCP documentation](https://learn.chatgpt.com/docs/extend
   path and byte count, not the file contents. No arbitrary URL or destination is accepted.
   Unlike queries, this tool declares local write effects in its MCP annotations.
 - `download_course_files` accepts a `files` array of 1–10 objects with the same
-  three selector fields. It saves distinct selections in order to the same
-  folder under the single-file download rules. Results contain `saved`,
+  three selector fields. It saves distinct selections in order under the
+  single-file download rules. Set the optional boolean `organize` to `true` to
+  put files under `course-<id>/activity-<id>/` inside the download folder.
+  Results contain `saved`,
   `failed`, or `skipped` for each distinct selection. An authentication failure
   stops remaining transfers. A failed item may accompany successful downloads,
   so inspect the individual outcomes.

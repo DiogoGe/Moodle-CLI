@@ -52,6 +52,8 @@ native resource ownership, and the limitations of OS credential storage.
   embedded resources during rendering.
 - Download one file selected by course ID, course-module ID, and displayed file number.
 - Download up to 10 selected files in one operation, reporting individual outcomes.
+- Optionally group a batch under stable course and activity folders. Refuse
+  linked subdirectories so organized downloads stay within the destination.
 - Accept an optional destination directory and default to `./downloads`.
 - Never overwrite an existing file or symbolic link. There is no overwrite option.
 - Reject unsafe path components, terminal controls, and reserved Windows device names.

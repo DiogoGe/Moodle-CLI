@@ -70,7 +70,11 @@ class CourseService(private val access: AccessService, private val repository: C
         }
     }
 
-    fun downloadMany(selections: List<CourseFileSelection>, directory: String): List<CourseDownloadOutcome> {
+    fun downloadMany(
+        selections: List<CourseFileSelection>,
+        directory: String,
+        organize: Boolean = false
+    ): List<CourseDownloadOutcome> {
         if (selections.size !in 1..MAX_BATCH_FILES) throw MoodleException.Input("error.download.batchSize", MAX_BATCH_FILES)
         val selected = selections.distinct()
         selected.forEach(::validateSelection)
@@ -87,7 +91,8 @@ class CourseService(private val access: AccessService, private val repository: C
                             .getOrPut(selection.courseId) {
                                 runCatching { repository.getContents(token, selection.courseId) }
                             }.getOrThrow()
-                        files.download(token, selectFile(sections, selection), directory)
+                        val folders = if (organize) organizedFolders(selection) else emptyList()
+                        files.download(token, selectFile(sections, selection), directory, folders)
                     }
                 }
             }
@@ -98,6 +103,9 @@ class CourseService(private val access: AccessService, private val repository: C
         }
         return outcomes
     }
+
+    private fun organizedFolders(selection: CourseFileSelection): List<String> =
+        listOf("course-${selection.courseId}", "activity-${selection.moduleId}")
 
     private fun recordDownload(selection: CourseFileSelection, save: () -> DownloadedFile): CourseDownloadOutcome = try {
         CourseDownloadOutcome.Saved(selection, save())

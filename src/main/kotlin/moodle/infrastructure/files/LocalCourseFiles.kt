@@ -10,22 +10,43 @@ import java.io.OutputStream
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
+import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 
 internal class LocalCourseFiles(private val client: MoodleFileClient) : CourseFiles {
-    override fun download(token: AccessToken, file: CourseFile, directory: String): DownloadedFile {
+    override fun download(
+        token: AccessToken,
+        file: CourseFile,
+        directory: String,
+        subdirectories: List<String>
+    ): DownloadedFile {
         validateFileName(file.name)
         if (file.size > MAX_DOWNLOAD_BYTES) throw MoodleException.Download("error.download.tooLarge")
         try {
             val root = Files.createDirectories(Path.of(directory)).toRealPath()
-            val target = root.resolve(file.name)
+            val destination = subdirectories.fold(root, ::resolveSubdirectory)
+            val target = destination.resolve(file.name)
             return client.read(token, file) { input -> save(input, target) }
         } catch (_: InvalidPathException) {
             throw MoodleException.Download("error.download.directory")
         } catch (_: java.io.IOException) {
             throw MoodleException.Download("error.download.save")
         }
+    }
+
+    private fun resolveSubdirectory(parent: Path, name: String): Path {
+        validateFileName(name)
+        val path = parent.resolve(name)
+        try {
+            Files.createDirectory(path)
+        } catch (_: FileAlreadyExistsException) {
+            // Reuse only real directories. A symlink or junction could redirect the download.
+        }
+        if (!Files.isDirectory(path, NOFOLLOW_LINKS) || path.toRealPath() != path) {
+            throw MoodleException.Download("error.download.subdirectory")
+        }
+        return path
     }
 
     override fun readText(token: AccessToken, file: CourseFile): String = client.read(token, file) { input ->

@@ -30,7 +30,7 @@ Memory-only sessions must stay in the same process; see [Saved login](GETTING_ST
 | `open <course-id> <module-id>` | Open a Moodle activity in the default browser. |
 | `read <course-id> <module-id>` | Read an activity's text, including the content of Moodle Page resources. |
 | `download <course-id> <module-id> <file-number> [directory]` | Save one listed file. |
-| `download-many <course-id>:<module-id>:<file-number> ... [--directory <directory>]` | Save up to 10 selected files. |
+| `download-many <course-id>:<module-id>:<file-number> ... [--directory <directory>] [--organize]` | Save up to 10 selected files, optionally in course and activity folders. |
 | `assignments [--course <course-id>]` | List assignments, due dates, and available submission status. |
 | `tasks [--course <course-id>]` | Alias of `assignments`. |
 | `quizzes [--course <course-id>]` | List quizzes and available schedule/time-limit metadata. |
@@ -112,14 +112,17 @@ credential and transport boundaries.
 ## Download selected files together
 
 ```text
-download-many 1234:5678:1 1234:5678:2 1234:5679:1 --directory "./My Materials"
+download-many 1234:5678:1 1234:5678:2 1234:5679:1 --directory "./My Materials" --organize
 ```
 
 Copy selectors from search results or combine the course ID, module ID, and file
 number shown in the course overview. Each batch accepts up to 10 selections and
-downloads each distinct file once, in the order requested. All files go to the
-same directory, defaulting to `./downloads`. If two files have the same name, the
-first saved file stays in place and the other is reported as a failure.
+downloads each distinct file once, in the order requested. The default destination
+is `./downloads`. With `--organize`, the file from activity `5678` in course
+`1234` goes under `course-1234/activity-5678/` inside the chosen directory.
+IDs keep the paths consistent when courses or activities are renamed. If two
+files target the same path, the first saved file stays in place and the other is
+reported as a failure.
 
 The command reports an outcome for each selection and returns exit status 1 if
 any download failed. An expired login stops the batch and leaves completed

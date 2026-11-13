@@ -82,12 +82,17 @@ internal class McpFixture {
         }
     }
     private val files = object : CourseFiles {
-        override fun download(token: AccessToken, file: CourseFile, directory: String): DownloadedFile {
+        override fun download(
+            token: AccessToken,
+            file: CourseFile,
+            directory: String,
+            subdirectories: List<String>
+        ): DownloadedFile {
             beforeDownload()
             downloadedFile = file.name
             return DownloadedFile(
                 java.nio.file.Path
-                    .of(directory, file.name)
+                    .of(directory, *(subdirectories + file.name).toTypedArray())
                     .toString(),
                 file.size
             )

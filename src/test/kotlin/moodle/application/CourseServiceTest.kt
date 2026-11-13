@@ -220,6 +220,20 @@ class CourseServiceTest {
         assertEquals(listOf(21L), repository.contentCalls)
     }
 
+    @Test
+    fun `CLI organizes selected files by course and activity under the requested directory`() {
+        access.login(token)
+        val commands = CourseCommands(service, output = {})
+        val args = listOf("download-many", "21:56:1", "12:34:1", "--directory", "My Materials", "--organize")
+
+        assertEquals(0, commands.run(args))
+        assertEquals(
+            listOf("My Materials/course-21/activity-56/Outline.pdf", "My Materials/course-12/activity-34/index.html"),
+            files.savedPaths
+        )
+        assertEquals(listOf(21L, 12L), repository.contentCalls)
+    }
+
     private class FakeCourses : CourseRepository {
         var called = false
         var reject = false
@@ -292,14 +306,22 @@ class CourseServiceTest {
         var receivedToken: AccessToken? = null
         val attempts = mutableListOf<String>()
         val failures = mutableMapOf<String, MoodleException>()
+        val savedPaths = mutableListOf<String>()
 
-        override fun download(token: AccessToken, file: CourseFile, directory: String): DownloadedFile {
+        override fun download(
+            token: AccessToken,
+            file: CourseFile,
+            directory: String,
+            subdirectories: List<String>
+        ): DownloadedFile {
             attempts += file.name
             failures[file.name]?.let { throw it }
             selected = file
             this.directory = directory
             receivedToken = token
-            return DownloadedFile("$directory/${file.name}", 100)
+            val path = (listOf(directory) + subdirectories + file.name).joinToString("/")
+            savedPaths += path
+            return DownloadedFile(path, 100)
         }
 
         override fun readText(token: AccessToken, file: CourseFile): String = "<p>Full page text</p>"

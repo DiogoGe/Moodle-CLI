@@ -11,6 +11,7 @@ import moodle.domain.entities.Quiz
 import moodle.domain.entities.QuizList
 import moodle.domain.entities.QuizTiming
 import moodle.fixtures.McpFixture
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -241,6 +242,17 @@ class MoodleMcpToolsTest {
     }
 
     @Test
+    fun `batch tool can organize files using the selected course and activity`() = runBlocking {
+        val result = call(
+            "download_course_files",
+            """{"organize":true,"files":[{"course_id":1,"module_id":5,"file_number":1}]}"""
+        )
+        val item = result["items"]?.jsonArray?.single()?.jsonObject
+        val path = Path.of(System.getProperty("user.home"), "Downloads", "Moodle", "course-1", "activity-5", "notes.pdf")
+        assertEquals(path.toString(), item?.get("path")?.jsonPrimitive?.content)
+    }
+
+    @Test
     fun `invalid batch selections are all rejected before requests or writes`() = runBlocking {
         val valid = """{"course_id":1,"module_id":5,"file_number":1}"""
         val invalid = listOf(
@@ -253,6 +265,13 @@ class MoodleMcpToolsTest {
         )
         for (files in invalid) {
             val result = fixture.tools.call("download_course_files", objectOf("""{"files":$files}"""))
+            assertEquals(true, result.isError)
+        }
+        for (organize in listOf("\"true\"", "1", "null")) {
+            val result = fixture.tools.call(
+                "download_course_files",
+                objectOf("""{"files":[$valid],"organize":$organize}""")
+            )
             assertEquals(true, result.isError)
         }
         assertEquals(0, fixture.courseCalls)

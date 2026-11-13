@@ -3,6 +3,7 @@ package moodle.mcp
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.longOrNull
 import moodle.domain.exceptions.MoodleException
 
@@ -26,6 +27,12 @@ internal class McpArguments(private val values: JsonObject, allowed: Set<String>
         val array = values[name] as? JsonArray ?: invalid()
         if (array.size !in 1..maximum) invalid()
         return array.map { item -> McpArguments(item as? JsonObject ?: invalid(), allowed) }
+    }
+
+    fun boolean(name: String, default: Boolean): Boolean {
+        val value = values[name] ?: return default
+        if (value !is JsonPrimitive || value.isString) invalid()
+        return value.booleanOrNull ?: invalid()
     }
 
     fun requiredNumber(name: String, minimum: Int, maximum: Int): Int =

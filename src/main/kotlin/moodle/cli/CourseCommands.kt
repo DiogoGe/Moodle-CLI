@@ -121,11 +121,25 @@ class CourseCommands(
     }
 
     private fun downloadMany(args: List<String>): Int {
-        val hasDirectory = args.getOrNull(args.size - 2) == "--directory"
-        val directory = if (hasDirectory) args.last() else "downloads"
-        if (directory.isBlank()) throw MoodleException.Input("error.download.directory")
-        val selectors = if (hasDirectory) args.dropLast(2) else args
-        val results = service.downloadMany(selectors.map(::parseSelection), directory)
+        var directory: String? = null
+        var organize = false
+        val selections = mutableListOf<CourseFileSelection>()
+        val arguments = args.iterator()
+        while (arguments.hasNext()) {
+            when (val argument = arguments.next()) {
+                "--organize" -> {
+                    if (organize) throw MoodleException.Input("error.download.batchSelector")
+                    organize = true
+                }
+                "--directory" -> {
+                    if (directory != null || !arguments.hasNext()) throw MoodleException.Input("error.download.batchSelector")
+                    directory = arguments.next()
+                    if (directory.isBlank()) throw MoodleException.Input("error.download.directory")
+                }
+                else -> selections.add(parseSelection(argument))
+            }
+        }
+        val results = service.downloadMany(selections, directory ?: "downloads", organize)
         results.forEach(::showDownloadOutcome)
         return if (results.all { it is CourseDownloadOutcome.Saved }) 0 else 1
     }
