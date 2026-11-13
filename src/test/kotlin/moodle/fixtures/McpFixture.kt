@@ -23,6 +23,7 @@ import moodle.domain.interfaces.CourseFiles
 import moodle.domain.interfaces.CourseRepository
 import moodle.domain.interfaces.MoodleAccess
 import moodle.mcp.MoodleMcpTools
+import moodle.presentation.PlainText
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -101,7 +102,7 @@ internal class McpFixture {
     }
     val application = MoodleApplication(
         access,
-        CourseService(access, repository, files),
+        CourseService(access, repository, files, PlainText()::render),
         AssignmentService(access, assignments, clock),
         QuizService(access, quizzes),
         clock

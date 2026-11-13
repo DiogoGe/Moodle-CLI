@@ -25,7 +25,7 @@ class CourseCommands(
         when {
             args == listOf("courses") -> showCourses()
             args.size == 2 && args[0] == "course" -> showContents(id(args[1]))
-            args.firstOrNull() == "search" -> search(args.drop(1).joinToString(" "))
+            args.firstOrNull() == "search" -> search(args.drop(1))
             args.size == 3 && args[0] == "open" -> return openActivity(id(args[1]), id(args[2]))
             args.size == 3 && args[0] == "read" -> output(text.render(service.readText(id(args[1]), id(args[2]))))
             args.size in 4..5 && args[0] == "download" -> download(args)
@@ -51,21 +51,43 @@ class CourseCommands(
         }
     }
 
-    private fun search(query: String) {
-        val result = service.search(query)
+    private fun search(args: List<String>) {
+        val keywords = mutableListOf<String>()
+        var courseId: Long? = null
+        var pageOffset: Int? = null
+        val arguments = args.iterator()
+        while (arguments.hasNext()) {
+            when (val argument = arguments.next()) {
+                "--course" -> {
+                    if (courseId != null || !arguments.hasNext()) throw MoodleException.Input("error.search.usage")
+                    courseId = id(arguments.next())
+                }
+                "--pages" -> if (pageOffset == null) pageOffset = 0
+                "--page-offset" -> {
+                    if (!arguments.hasNext()) throw MoodleException.Input("error.search.usage")
+                    pageOffset = arguments.next().toIntOrNull() ?: throw MoodleException.Input("error.search.pageOffset")
+                }
+                else -> {
+                    if (argument.startsWith("--")) throw MoodleException.Input("error.search.usage")
+                    keywords.add(argument)
+                }
+            }
+        }
+        val result = service.search(keywords.joinToString(" "), courseId, pageOffset)
         if (result.skippedCourses > 0) output(messages.text("search.partial", result.skippedCourses))
+        if (result.skippedPages > 0) output(messages.text("search.pagesSkipped", result.skippedPages))
         if (result.items.isEmpty()) output(messages.text("search.empty"))
         result.items.forEach(::showSearchHit)
+        result.nextPageOffset?.let { output(messages.text("search.morePages", it)) }
     }
 
     private fun showSearchHit(hit: CourseSearchHit) {
         when (hit) {
-            is CourseSearchHit.CourseTitle ->
+            is CourseSearchHit.CourseTitle -> {
                 output(messages.text("search.course", text.label(hit.course.name), hit.course.id))
-            is CourseSearchHit.Activity -> {
-                output(messages.text("search.activity", text.label(hit.name), text.label(hit.course.name), hit.course.id, hit.id))
-                output(messages.text("course.open", hit.course.id, hit.id))
+                hit.snippet?.let { output(messages.text("search.excerpt", it)) }
             }
+            is CourseSearchHit.Activity -> showActivitySearchHit(hit, hit.snippet)
             is CourseSearchHit.File -> {
                 val activity = hit.activity
                 val selection = CourseFileSelection(activity.course.id, activity.id, hit.number)
@@ -81,7 +103,20 @@ class CourseCommands(
                 output(messages.text("course.download", activity.course.id, activity.id, hit.number))
                 output(messages.text("course.open", activity.course.id, activity.id))
             }
+            is CourseSearchHit.SectionText -> {
+                output(messages.text("search.section", text.label(hit.sectionName), text.label(hit.course.name), hit.course.id))
+                output(messages.text("search.excerpt", hit.snippet))
+            }
+            is CourseSearchHit.PageText -> showActivitySearchHit(hit.activity, hit.snippet, page = true)
         }
+    }
+
+    private fun showActivitySearchHit(hit: CourseSearchHit.Activity, snippet: String?, page: Boolean = false) {
+        val title = if (page) "search.page" else "search.activity"
+        output(messages.text(title, text.label(hit.name), text.label(hit.course.name), hit.course.id, hit.id))
+        snippet?.let { output(messages.text("search.excerpt", it)) }
+        output(messages.text("course.open", hit.course.id, hit.id))
+        if (page) output(messages.text("course.read", hit.course.id, hit.id))
     }
 
     private fun showModule(courseId: Long, module: CourseModule) {

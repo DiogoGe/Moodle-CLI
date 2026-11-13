@@ -38,6 +38,9 @@ internal class McpArguments(private val values: JsonObject, allowed: Set<String>
     fun requiredNumber(name: String, minimum: Int, maximum: Int): Int =
         boundedNumber(integer(name) ?: invalid(), minimum, maximum)
 
+    fun optionalNumber(name: String, minimum: Int, maximum: Int): Int? =
+        integer(name)?.let { boundedNumber(it, minimum, maximum) }
+
     fun number(
         name: String,
         default: Int,

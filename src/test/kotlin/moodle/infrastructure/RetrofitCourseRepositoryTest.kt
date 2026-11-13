@@ -18,8 +18,12 @@ class RetrofitCourseRepositoryTest {
 
     @Test
     fun `course list uses authenticated user and sends credentials only in POST body`() {
-        withServer("""[{"id":12,"fullname":"Programming","shortname":"PRG"}]""") { repository, requests ->
-            assertEquals("Programming", repository.getCourses(token, 42).single().name)
+        withServer(
+            """[{"id":12,"fullname":"Programming","shortname":"PRG","summary":"<p>Course overview</p>"}]"""
+        ) { repository, requests ->
+            val course = repository.getCourses(token, 42).single()
+            assertEquals("Programming", course.name)
+            assertEquals("<p>Course overview</p>", course.description)
             val request = requests.single()
             assertTrue(request.contains("POST /webservice/rest/server.php "))
             assertTrue(request.contains("userid=42"))

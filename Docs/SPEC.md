@@ -42,8 +42,10 @@ native resource ownership, and the limitations of OS credential storage.
 ## Course and material requirements
 
 - List enrolled courses with IDs and names.
-- Search enrolled course titles, accessible activity names, and file names by
-  keyword. Return file selectors and report denied course-content access.
+- Search enrolled course titles, activity names, file names, visible
+  descriptions, and inline text by keyword. Support a course filter and opt-in
+  Page text search in groups of up to ten resources. Return excerpts and file
+  selectors, and report courses or pages that could not be read.
 - Open a selected activity in the default browser using its course and module
   IDs. Build the link from the configured site and validated module metadata.
 - Show accessible sections, descriptions, inline text, activities, and numbered files.

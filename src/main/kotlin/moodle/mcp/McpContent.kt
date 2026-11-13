@@ -29,16 +29,30 @@ internal class McpContent {
             is CourseSearchHit.CourseTitle -> {
                 put("kind", "course")
                 putCourseContext(hit.course)
+                hit.snippet?.let { put("snippet", it) }
             }
             is CourseSearchHit.Activity -> {
                 put("kind", "activity")
                 putActivityContext(hit)
+                hit.snippet?.let { put("snippet", it) }
             }
             is CourseSearchHit.File -> {
                 put("kind", "file")
                 putActivityContext(hit.activity)
                 put("file_number", hit.number)
                 put("file_name", text.label(hit.name).take(1000))
+            }
+            is CourseSearchHit.SectionText -> {
+                put("kind", "section_text")
+                putCourseContext(hit.course)
+                put("section_id", hit.sectionId)
+                put("section_name", text.label(hit.sectionName).take(1000))
+                put("snippet", hit.snippet)
+            }
+            is CourseSearchHit.PageText -> {
+                put("kind", "page_text")
+                putActivityContext(hit.activity)
+                put("snippet", hit.snippet)
             }
         }
     }

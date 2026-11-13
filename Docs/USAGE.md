@@ -26,7 +26,7 @@ Memory-only sessions must stay in the same process; see [Saved login](GETTING_ST
 | `logout` | Clear the active session and remove this application's saved login. |
 | `courses` | List enrolled courses with IDs and names. |
 | `course <course-id>` | Show accessible sections, activity descriptions, inline text, and numbered files. |
-| `search <keywords>` | Search enrolled course titles, activity names, and file names. |
+| `search <keywords> [--course <course-id>] [--pages] [--page-offset <n>]` | Search titles, filenames, and visible text across courses. |
 | `open <course-id> <module-id>` | Open a Moodle activity in the default browser. |
 | `read <course-id> <module-id>` | Read an activity's text, including the content of Moodle Page resources. |
 | `download <course-id> <module-id> <file-number> [directory]` | Save one listed file. |
@@ -65,13 +65,22 @@ a dedicated reader. The CLI does not retrieve quiz attempt questions.
 
 ```text
 search recursion slides
+search recursion --course 1234 --pages
 ```
 
-Each keyword must appear in the same course title, activity name, or file name.
+Each keyword must appear in the same title, filename, description, or inline text.
 Search ignores case and treats dots, hyphens, and underscores as separators.
+Matches in visible text include a short excerpt. With `--course`, the search
+fetches content only for the selected course.
 File results include the activity, course, a selector for `download-many`, and a
-ready-to-use `download` command. Search reports if Moodle denied access to
-some course contents. It does not read the contents of files or pages.
+ready-to-use `download` command.
+
+Add `--pages` to also search the full text of Moodle Page resources. Each call
+checks up to ten pages. When prompted, repeat the search with the reported
+`--page-offset` to check the next group. An explicit offset enables Page search
+and applies only to Page resources. Descriptions and filenames are searched on
+each call. PDF and other attachments are searchable by filename. The CLI
+reports courses or pages that could not be read.
 
 ## Open a result in Moodle
 

@@ -18,6 +18,7 @@ import moodle.domain.exceptions.MoodleException
 import moodle.domain.interfaces.CourseFiles
 import moodle.domain.interfaces.CourseRepository
 import moodle.domain.interfaces.MoodleAccess
+import moodle.presentation.PlainText
 import java.net.URI
 import java.util.Locale
 import kotlin.test.Test
@@ -39,7 +40,7 @@ class CourseServiceTest {
     )
     private val repository = FakeCourses()
     private val files = FakeFiles()
-    private val service = CourseService(access, repository, files)
+    private val service = CourseService(access, repository, files, PlainText()::render)
 
     @Test
     fun `login is required before accessing courses and logout removes access`() {
@@ -61,7 +62,7 @@ class CourseServiceTest {
         commands.run(listOf("courses"))
         commands.run(listOf("course", "12"))
         assertTrue(output.any { it.contains("12  Programming") })
-        assertTrue(output.any { it.contains("Overview & introduction") })
+        assertTrue(output.any { it.contains("Generics overview & introduction") })
         assertTrue(output.any { it.contains("download 12 34 1") })
         assertTrue(output.any { it.trim().endsWith("open 12 34") })
         assertFalse(output.any { it.contains("<p>") || it.contains(token.value) })
@@ -117,6 +118,55 @@ class CourseServiceTest {
         assertFailsWith<MoodleException.Input> { service.search(" - _ ") }
         assertFailsWith<MoodleException.Input> { service.search("x".repeat(121)) }
         assertFalse(repository.called)
+    }
+
+    @Test
+    fun `search finds visible descriptions and inline text without reading Page files`() {
+        access.login(token)
+        repository.courses = listOf(Course(12, "Programming", "<p>Generics &amp; variance</p>"), Course(21, "Other"))
+        val result = service.search("GEN", courseId = 12)
+
+        val course = result.items.filterIsInstance<CourseSearchHit.CourseTitle>().single()
+        val section = result.items.filterIsInstance<CourseSearchHit.SectionText>().single()
+        val module = result.items.filterIsInstance<CourseSearchHit.Activity>().single()
+        assertEquals("Generics & variance", course.snippet)
+        assertEquals("Generics overview & introduction", section.snippet)
+        assertEquals("Practice generics", module.snippet)
+        assertTrue(service.search("hiddenkeyword", courseId = 12).items.isEmpty())
+        assertTrue(service.search("short intro", courseId = 12).items.single() is CourseSearchHit.Activity)
+        assertTrue(files.reads.isEmpty())
+        assertEquals(listOf(12L, 12L, 12L), repository.contentCalls)
+    }
+
+    @Test
+    fun `Page search limits reads and can continue after unreadable files`() {
+        access.login(token)
+        repository.courses = (1L..12L).map { Course(it, "Course $it") }
+        files.pageText = "<p>${"😀".repeat(140)} unique phrase &amp; context</p>"
+        files.firstPageError = MoodleException.Download("error.download.denied")
+        val first = service.search("unique phrase", pageOffset = 0)
+        assertEquals(10, files.reads.size)
+        assertEquals(9, first.items.filterIsInstance<CourseSearchHit.PageText>().size)
+        assertEquals(10, first.nextPageOffset)
+        assertEquals(1, first.skippedPages)
+
+        val second = service.search("unique phrase", pageOffset = first.nextPageOffset)
+        assertEquals(12, files.reads.size)
+        assertEquals(null, second.nextPageOffset)
+        assertEquals(listOf(11L, 12L), second.items.filterIsInstance<CourseSearchHit.PageText>().map { it.activity.course.id })
+        val snippet = second.items
+            .filterIsInstance<CourseSearchHit.PageText>()
+            .first()
+            .snippet
+        assertTrue(snippet.startsWith("…") && snippet.contains("unique phrase & context"))
+    }
+
+    @Test
+    fun `Page search propagates expired authentication instead of returning an empty result`() {
+        access.login(token)
+        files.firstPageError = MoodleException.Authentication("error.session.expired")
+        assertFailsWith<MoodleException.Authentication> { service.search("intro", pageOffset = 0) }
+        assertFailsWith<MoodleException.Authentication> { service.getCourses() }
     }
 
     @Test
@@ -277,14 +327,14 @@ class CourseServiceTest {
             CourseSection(
                 1,
                 "Week 1",
-                "<p>Overview &amp; introduction</p>",
+                "<p>Generics overview &amp; introduction</p>",
                 listOf(
                     CourseModule(
                         34,
                         "Instructions",
                         moduleType,
-                        "<p>Short intro</p>",
-                        emptyList(),
+                        "<p>Short intro</p><script>hiddenkeyword</script>",
+                        listOf("<p>Practice generics</p>"),
                         listOf(
                             CourseFile(
                                 "index.html",
@@ -296,7 +346,8 @@ class CourseServiceTest {
                         noViewLink = noViewLink
                     )
                 )
-            )
+            ),
+            CourseSection(3, "Hidden section", "<p>hiddenkeyword</p>", emptyList(), userVisible = false)
         )
     }
 
@@ -307,6 +358,9 @@ class CourseServiceTest {
         val attempts = mutableListOf<String>()
         val failures = mutableMapOf<String, MoodleException>()
         val savedPaths = mutableListOf<String>()
+        val reads = mutableListOf<CourseFile>()
+        var pageText = "<p>Full page text</p>"
+        var firstPageError: MoodleException? = null
 
         override fun download(
             token: AccessToken,
@@ -324,6 +378,10 @@ class CourseServiceTest {
             return DownloadedFile(path, 100)
         }
 
-        override fun readText(token: AccessToken, file: CourseFile): String = "<p>Full page text</p>"
+        override fun readText(token: AccessToken, file: CourseFile): String {
+            reads += file
+            if (reads.size == 1) firstPageError?.let { throw it }
+            return pageText
+        }
     }
 }

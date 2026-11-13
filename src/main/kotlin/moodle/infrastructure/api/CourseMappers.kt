@@ -11,7 +11,8 @@ internal fun CourseSectionDto.toDomain(): CourseSection = CourseSection(
     id,
     name,
     summary,
-    modules.filter { uservisible && it.uservisible }.map { it.toDomain() }
+    modules.filter { uservisible && it.uservisible }.map { it.toDomain() },
+    userVisible = uservisible
 )
 
 private fun CourseModuleDto.toDomain(): CourseModule = CourseModule(

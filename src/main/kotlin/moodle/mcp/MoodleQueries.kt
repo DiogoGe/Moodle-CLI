@@ -1,6 +1,7 @@
 package moodle.mcp
 
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -56,10 +57,17 @@ internal class MoodleQueries(private val application: MoodleApplication, private
 
     private fun search(arguments: McpArguments): JsonObject {
         val page = McpPage(arguments)
-        val result = application.courses.search(arguments.requiredString("query"))
-        return JsonObject(
-            page.render(result.items, content::searchHit) + ("skipped_courses" to JsonPrimitive(result.skippedCourses))
+        val result = application.courses.search(
+            arguments.requiredString("query"),
+            courseId = arguments.optionalId("course_id"),
+            pageOffset = arguments.optionalNumber("page_offset", 0, Int.MAX_VALUE)
         )
+        val metadata = buildJsonObject {
+            put("skipped_courses", result.skippedCourses)
+            put("skipped_pages", result.skippedPages)
+            put("next_page_offset", result.nextPageOffset?.let(::JsonPrimitive) ?: JsonNull)
+        }
+        return JsonObject(page.render(result.items, content::searchHit) + metadata)
     }
 
     private fun readText(arguments: McpArguments): JsonObject {

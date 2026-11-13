@@ -15,6 +15,7 @@ import moodle.infrastructure.api.repository.RetrofitQuizRepository
 import moodle.infrastructure.credentials.platformTokenStore
 import moodle.infrastructure.files.LocalCourseFiles
 import moodle.infrastructure.files.MoodleFileClient
+import moodle.presentation.PlainText
 import java.time.Clock
 
 /** Composition shared by the terminal and local MCP entry points. */
@@ -40,7 +41,7 @@ internal fun createMoodleApplication(useKeychain: Boolean, config: MoodleConfig 
     val clock = Clock.systemDefaultZone()
     return MoodleApplication(
         access,
-        CourseService(access, RetrofitCourseRepository(api, json), LocalCourseFiles(MoodleFileClient(site))),
+        CourseService(access, RetrofitCourseRepository(api, json), LocalCourseFiles(MoodleFileClient(site)), PlainText()::render),
         AssignmentService(
             access,
             RetrofitAssignmentRepository(api, json, access::getAvailableFunctions),

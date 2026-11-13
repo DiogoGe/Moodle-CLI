@@ -96,6 +96,21 @@ class MoodleMcpToolsTest {
     }
 
     @Test
+    fun `search reads Page text only with a page offset and exposes the matching excerpt`() = runBlocking {
+        fixture.text = "<p>Pattern matching &amp; recursion</p><script>hiddenkeyword</script>"
+        val metadata = call("search_course_materials", """{"query":"pattern","course_id":1}""")
+        assertEquals("0", metadata["total"].toString())
+
+        val pages = call("search_course_materials", """{"query":"pattern","course_id":1,"page_offset":0}""")
+        val item = pages["items"]?.jsonArray?.single()?.jsonObject
+        assertEquals("page_text", item?.get("kind")?.jsonPrimitive?.content)
+        assertEquals("5", item?.get("module_id").toString())
+        assertEquals("Pattern matching & recursion", item?.get("snippet")?.jsonPrimitive?.content)
+        assertEquals("null", pages["next_page_offset"].toString())
+        assertFalse(pages.toString().contains(fixture.token))
+    }
+
+    @Test
     fun `invalid tool arguments are rejected before any course request`() = runBlocking {
         val invalid = listOf(
             "{}",

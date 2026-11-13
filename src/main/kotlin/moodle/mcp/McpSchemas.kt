@@ -9,6 +9,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import moodle.application.AgendaService
+import moodle.application.CoursePageSearch
 import moodle.application.CourseSearch
 import moodle.application.CourseService
 
@@ -27,9 +28,9 @@ internal object McpSchemas {
         tool("list_courses", "List enrolled Moodle courses. Follow next_offset for additional results.", page()),
         tool(
             "search_course_materials",
-            "Search course titles, activity names and file names across enrolled courses. Use short keywords. " +
-                "File results include the IDs and file number for an explicitly requested download.",
-            page() + ("query" to searchQuery()),
+            "Search course titles, activity names, file names and visible descriptions. " +
+                "To also search full Moodle Page texts, pass page_offset starting at 0. Use short keywords.",
+            page() + mapOf("query" to searchQuery(), "course_id" to id(), "page_offset" to searchPageOffset()),
             listOf("query")
         ),
         tool(
@@ -143,10 +144,17 @@ internal object McpSchemas {
 
     private fun searchQuery(): JsonObject = buildJsonObject {
         put("type", "string")
-        put("description", "Case-insensitive keywords. All terms must appear in the same title or filename.")
+        put("description", "Case-insensitive keywords. All terms must appear in the same title, filename, or text field.")
         put("minLength", 1)
         put("maxLength", CourseSearch.MAX_QUERY_LENGTH)
     }
+
+    private fun searchPageOffset(): JsonObject = integer(
+        "Optional zero-based Page resource offset. Scans up to ${CoursePageSearch.MAX_PAGES_PER_SEARCH} pages. " +
+            "Use next_page_offset for the next group. Result pagination uses offset instead.",
+        0,
+        Int.MAX_VALUE
+    )
 
     private fun integer(description: String, minimum: Long, maximum: Long): JsonObject = buildJsonObject {
         put("type", "integer")

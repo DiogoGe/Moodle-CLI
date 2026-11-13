@@ -13,7 +13,12 @@ import moodle.domain.exceptions.MoodleException
 import moodle.domain.interfaces.CourseFiles
 import moodle.domain.interfaces.CourseRepository
 
-class CourseService(private val access: AccessService, private val repository: CourseRepository, private val files: CourseFiles) {
+class CourseService(
+    private val access: AccessService,
+    private val repository: CourseRepository,
+    private val files: CourseFiles,
+    private val renderText: (String) -> String
+) {
     fun getCourses(): List<Course> = access.withSession { token, userId -> repository.getCourses(token, userId) }
 
     fun getContents(courseId: Long): List<CourseSection> {
@@ -21,23 +26,29 @@ class CourseService(private val access: AccessService, private val repository: C
         return access.withSession { token, _ -> repository.getContents(token, courseId) }
     }
 
-    fun search(query: String): CourseSearchResult {
-        val search = CourseSearch(query)
+    fun search(query: String, courseId: Long? = null, pageOffset: Int? = null): CourseSearchResult {
+        courseId?.let(::validateId)
+        if (pageOffset != null && pageOffset < 0) throw MoodleException.Input("error.search.pageOffset")
+        val search = CourseSearch(query, renderText)
         return access.withSession { token, userId ->
+            val pages = pageOffset?.let { CoursePageSearch(it, search) { file -> files.readText(token, file) } }
+            val courses = repository.getCourses(token, userId).filter { courseId == null || it.id == courseId }
+            if (courseId != null && courses.isEmpty()) throw MoodleException.Input("error.search.course")
             val hits = mutableListOf<CourseSearchHit>()
             var skipped = 0
-            for (course in repository.getCourses(token, userId).sortedBy { it.id }) {
+            for (course in courses.sortedBy { it.id }) {
                 if (Thread.currentThread().isInterrupted) throw InterruptedException()
-                search.courseTitle(course)?.let(hits::add)
+                search.courseHit(course)?.let(hits::add)
                 val sections = try {
-                    repository.getContents(token, course.id)
+                    repository.getContents(token, course.id).filter { it.userVisible }
                 } catch (_: MoodleException.Permission) {
                     skipped++
                     continue
                 }
                 hits.addAll(search.activities(course, sections))
+                if (pages != null) hits.addAll(pages.hits(course, sections))
             }
-            CourseSearchResult(hits, skipped)
+            CourseSearchResult(hits, skipped, pages?.skipped ?: 0, pages?.nextOffset)
         }
     }
 
@@ -49,7 +60,7 @@ class CourseService(private val access: AccessService, private val repository: C
     fun readText(courseId: Long, moduleId: Long): String {
         val module = getModule(courseId, moduleId)
         val inline = listOf(module.description) + module.texts
-        val page = module.files.firstOrNull { module.type == "page" && it.name == "index.html" }
+        val page = module.pageContentFile()
         val pageText = page?.let { file -> access.withSession { token, _ -> files.readText(token, file) } }
         val text = (inline + listOfNotNull(pageText)).filter { it.isNotBlank() }.joinToString("\n")
         if (text.isBlank()) throw MoodleException.Input("error.course.noText")
