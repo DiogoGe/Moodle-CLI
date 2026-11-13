@@ -2,6 +2,8 @@ package moodle.cli
 
 import moodle.application.CourseService
 import moodle.cli.i18n.Messages
+import moodle.domain.entities.CourseDownloadOutcome
+import moodle.domain.entities.CourseFileSelection
 import moodle.domain.entities.CourseModule
 import moodle.domain.entities.CourseSearchHit
 import moodle.domain.exceptions.MoodleException
@@ -21,6 +23,7 @@ class CourseCommands(
             args.firstOrNull() == "search" -> search(args.drop(1).joinToString(" "))
             args.size == 3 && args[0] == "read" -> output(text.render(service.readText(id(args[1]), id(args[2]))))
             args.size in 4..5 && args[0] == "download" -> download(args)
+            args.firstOrNull() == "download-many" -> return downloadMany(args.drop(1))
             else -> throw MoodleException.Input("error.course.usage")
         }
         return 0
@@ -57,12 +60,14 @@ class CourseCommands(
                 output(messages.text("search.activity", text.label(hit.name), text.label(hit.course.name), hit.course.id, hit.id))
             is CourseSearchHit.File -> {
                 val activity = hit.activity
+                val selection = CourseFileSelection(activity.course.id, activity.id, hit.number)
                 output(
                     messages.text(
                         "search.file",
                         text.label(hit.name),
                         text.label(activity.name),
-                        text.label(activity.course.name)
+                        text.label(activity.course.name),
+                        selector(selection)
                     )
                 )
                 output(messages.text("course.download", activity.course.id, activity.id, hit.number))
@@ -91,6 +96,38 @@ class CourseCommands(
         val result = service.download(id(args[1]), id(args[2]), number, args.getOrElse(4) { "downloads" })
         output(messages.text("download.saved", result.bytes, text.label(result.path)))
     }
+
+    private fun downloadMany(args: List<String>): Int {
+        val hasDirectory = args.getOrNull(args.size - 2) == "--directory"
+        val directory = if (hasDirectory) args.last() else "downloads"
+        if (directory.isBlank()) throw MoodleException.Input("error.download.directory")
+        val selectors = if (hasDirectory) args.dropLast(2) else args
+        val results = service.downloadMany(selectors.map(::parseSelection), directory)
+        results.forEach(::showDownloadOutcome)
+        return if (results.all { it is CourseDownloadOutcome.Saved }) 0 else 1
+    }
+
+    private fun parseSelection(value: String): CourseFileSelection {
+        val parts = value.split(':', limit = 4)
+        if (parts.size != 3) throw MoodleException.Input("error.download.batchSelector")
+        val number = parts[2].toIntOrNull() ?: throw MoodleException.Input("error.download.batchSelector")
+        return CourseFileSelection(id(parts[0]), id(parts[1]), number)
+    }
+
+    private fun showDownloadOutcome(outcome: CourseDownloadOutcome) {
+        val reference = selector(outcome.selection)
+        when (outcome) {
+            is CourseDownloadOutcome.Saved ->
+                output(messages.text("download.batchSaved", reference, outcome.file.bytes, text.label(outcome.file.path)))
+            is CourseDownloadOutcome.Failed -> output(
+                messages.text("download.batchFailed", reference, messages.error(outcome.error))
+            )
+            is CourseDownloadOutcome.Skipped -> output(messages.text("download.batchSkipped", reference))
+        }
+    }
+
+    private fun selector(selection: CourseFileSelection): String =
+        "${selection.courseId}:${selection.moduleId}:${selection.fileNumber}"
 
     private fun id(value: String): Long = value.toLongOrNull()?.takeIf { it > 0 }
         ?: throw MoodleException.Input("error.input.id")

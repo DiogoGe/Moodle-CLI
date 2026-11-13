@@ -17,7 +17,7 @@ import moodle.domain.exceptions.MoodleException
 
 internal class MoodleMcpTools(application: MoodleApplication, private val messages: Messages) {
     val tools: List<Tool> = McpSchemas.tools()
-    private val queries = MoodleQueries(application)
+    private val queries = MoodleQueries(application, messages)
     private val calls = Semaphore(MAX_CONCURRENT_CALLS)
 
     suspend fun call(name: String, arguments: JsonObject): CallToolResult = calls.withPermit {

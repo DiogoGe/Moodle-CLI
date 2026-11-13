@@ -35,8 +35,10 @@ class MoodleCli(
     }
 
     private companion object {
-        val STUDY_COMMANDS =
-            setOf("courses", "course", "search", "read", "download", "tasks", "assignments", "upcoming", "quizzes")
+        val STUDY_COMMANDS = setOf(
+            "courses", "course", "search", "read", "download", "download-many",
+            "tasks", "assignments", "upcoming", "quizzes"
+        )
         val PLANNED_COMMANDS = setOf("setup")
     }
 }

@@ -3,12 +3,22 @@ package moodle.mcp
 import io.modelcontextprotocol.kotlin.sdk.types.Tool
 import io.modelcontextprotocol.kotlin.sdk.types.ToolAnnotations
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import moodle.application.CourseSearch
+import moodle.application.CourseService
 
 internal object McpSchemas {
+    private val fileSelection = mapOf(
+        "course_id" to id(),
+        "module_id" to id(),
+        "file_number" to integer("One-based file number.", 1, Int.MAX_VALUE)
+    )
+    val fileSelectionFields: Set<String> get() = fileSelection.keys
+
     fun tools(): List<Tool> = courseTools() + downloadTools() + assignmentTools() + quizTools()
 
     private fun courseTools(): List<Tool> = listOf(
@@ -40,11 +50,34 @@ internal object McpSchemas {
             "download_course_file",
             "Download a selected course file to the local user's Downloads/Moodle folder without overwriting existing files. " +
                 "Returns a local path, not file content. Only use for downloads requested by the user.",
-            mapOf("course_id" to id(), "module_id" to id(), "file_number" to integer("One-based file number.", 1, Int.MAX_VALUE)),
-            listOf("course_id", "module_id", "file_number"),
+            fileSelection,
+            fileSelectionFields.toList(),
+            readOnly = false
+        ),
+        tool(
+            "download_course_files",
+            "Download explicitly selected course files to the local user's Downloads/Moodle folder. " +
+                "Use course ID, module ID and file number from search or course contents. Returns a status for each distinct file.",
+            mapOf("files" to fileSelections()),
+            listOf("files"),
             readOnly = false
         )
     )
+
+    private fun fileSelections(): JsonObject = buildJsonObject {
+        put("type", "array")
+        put("minItems", 1)
+        put("maxItems", CourseService.MAX_BATCH_FILES)
+        put(
+            "items",
+            buildJsonObject {
+                put("type", "object")
+                put("properties", JsonObject(fileSelection))
+                put("required", JsonArray(fileSelectionFields.map(::JsonPrimitive)))
+                put("additionalProperties", false)
+            }
+        )
+    }
 
     private fun assignmentTools(): List<Tool> = listOf(
         tool(

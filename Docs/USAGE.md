@@ -29,6 +29,7 @@ Memory-only sessions must stay in the same process; see [Saved login](GETTING_ST
 | `search <keywords>` | Search enrolled course titles, activity names, and file names. |
 | `read <course-id> <module-id>` | Read an activity's text, including the content of Moodle Page resources. |
 | `download <course-id> <module-id> <file-number> [directory]` | Save one listed file. |
+| `download-many <course-id>:<module-id>:<file-number> ... [--directory <directory>]` | Save up to 10 selected files. |
 | `assignments [--course <course-id>]` | List assignments, due dates, and available submission status. |
 | `tasks [--course <course-id>]` | Alias of `assignments`. |
 | `quizzes [--course <course-id>]` | List quizzes and available schedule/time-limit metadata. |
@@ -66,8 +67,8 @@ search recursion slides
 
 Each keyword must appear in the same course title, activity name, or file name.
 Search ignores case and treats dots, hyphens, and underscores as separators.
-File results include the matching activity, course, and a ready-to-use `download`
-command. Search loads course metadata and reports if Moodle denied access to
+File results include the activity, course, a selector for `download-many`, and a
+ready-to-use `download` command. Search reports if Moodle denied access to
 some course contents. It does not read the contents of files or pages.
 
 ## Download a file
@@ -86,15 +87,30 @@ Quote directory paths containing spaces. Windows paths may also be quoted:
 download 1234 5678 1 "C:\Users\Example\Documents\Course Materials"
 ```
 
-Existing files and symbolic links are never overwritten. There is no overwrite
-option or bulk-download command. Unsafe filenames, including reserved Windows
-device names, are rejected. Files are not opened automatically.
+Existing files and symbolic links are never overwritten. Unsafe filenames,
+including reserved Windows device names, are rejected. Files are not opened automatically.
 
 A download is limited to 512 MiB; reading a text page is limited to 2 MiB. File
 requests are restricted to the configured Moodle file endpoint, do not follow
 redirects, and carry the token in the POST body. Moodle must allow file downloads
 through its mobile Web Service. See [Authentication](AUTHENTICATION.md) for the
 credential and transport boundaries.
+
+## Download selected files together
+
+```text
+download-many 1234:5678:1 1234:5678:2 1234:5679:1 --directory "./My Materials"
+```
+
+Copy selectors from search results or combine the course ID, module ID, and file
+number shown in the course overview. Each batch accepts up to 10 selections and
+downloads each distinct file once, in the order requested. All files go to the
+same directory, defaulting to `./downloads`. If two files have the same name, the
+first saved file stays in place and the other is reported as a failure.
+
+The command reports an outcome for each selection and returns exit status 1 if
+any download failed. An expired login stops the batch and leaves completed
+downloads in place.
 
 ## Assignments and upcoming deadlines
 

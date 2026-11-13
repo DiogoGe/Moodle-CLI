@@ -1,5 +1,6 @@
 package moodle.mcp
 
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.longOrNull
@@ -19,6 +20,12 @@ internal class McpArguments(private val values: JsonObject, allowed: Set<String>
         val value = values[name] as? JsonPrimitive ?: invalid()
         if (!value.isString) invalid()
         return value.content
+    }
+
+    fun requiredObjects(name: String, maximum: Int, allowed: Set<String>): List<McpArguments> {
+        val array = values[name] as? JsonArray ?: invalid()
+        if (array.size !in 1..maximum) invalid()
+        return array.map { item -> McpArguments(item as? JsonObject ?: invalid(), allowed) }
     }
 
     fun requiredNumber(name: String, minimum: Int, maximum: Int): Int =

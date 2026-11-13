@@ -6,7 +6,9 @@ import moodle.domain.AccessToken
 import moodle.domain.PublicStatus
 import moodle.domain.SiteInfo
 import moodle.domain.entities.Course
+import moodle.domain.entities.CourseDownloadOutcome
 import moodle.domain.entities.CourseFile
+import moodle.domain.entities.CourseFileSelection
 import moodle.domain.entities.CourseModule
 import moodle.domain.entities.CourseSearchHit
 import moodle.domain.entities.CourseSection
@@ -113,11 +115,72 @@ class CourseServiceTest {
         assertFalse(repository.called)
     }
 
+    @Test
+    fun `batch preserves selected order and continues after a file conflict with one metadata request per course`() {
+        access.login(token)
+        files.failures["Outline.pdf"] = MoodleException.Download("error.download.exists")
+        val outline = CourseFileSelection(21, 56, 1)
+        val slides = CourseFileSelection(21, 56, 2)
+        val page = CourseFileSelection(12, 34, 1)
+
+        val outcomes = service.downloadMany(listOf(outline, page, slides, slides), "materials")
+
+        assertEquals(listOf(outline, page, slides), outcomes.map { it.selection })
+        assertEquals(listOf(21L, 12L), repository.contentCalls)
+        assertEquals(listOf("Outline.pdf", "index.html", "Recursion_Slides.pdf"), files.attempts)
+        assertEquals("error.download.exists", (outcomes[0] as CourseDownloadOutcome.Failed).error.messageKey)
+        assertEquals("materials/index.html", (outcomes[1] as CourseDownloadOutcome.Saved).file.path)
+        assertEquals("materials/Recursion_Slides.pdf", (outcomes[2] as CourseDownloadOutcome.Saved).file.path)
+    }
+
+    @Test
+    fun `batch keeps completed files and stops remaining downloads when authentication expires`() {
+        access.login(token)
+        files.failures["Outline.pdf"] = MoodleException.Authentication("error.session.expired")
+        val page = CourseFileSelection(12, 34, 1)
+        val outline = CourseFileSelection(21, 56, 1)
+        val slides = CourseFileSelection(21, 56, 2)
+
+        val outcomes = service.downloadMany(listOf(page, outline, slides), "materials")
+
+        assertTrue(outcomes[0] is CourseDownloadOutcome.Saved)
+        assertTrue((outcomes[1] as CourseDownloadOutcome.Failed).error is MoodleException.Authentication)
+        assertEquals(CourseDownloadOutcome.Skipped(slides), outcomes[2])
+        assertEquals(listOf("index.html", "Outline.pdf"), files.attempts)
+        assertFailsWith<MoodleException.Authentication> { service.getCourses() }
+    }
+
+    @Test
+    fun `authentication expiring on the first download still reports the remaining files as skipped`() {
+        access.login(token)
+        val outline = CourseFileSelection(21, 56, 1)
+        val slides = CourseFileSelection(21, 56, 2)
+        val error = MoodleException.Authentication("error.session.expired")
+        files.failures["Outline.pdf"] = error
+
+        val outcomes = service.downloadMany(listOf(outline, slides), "materials")
+
+        assertEquals(listOf(CourseDownloadOutcome.Failed(outline, error), CourseDownloadOutcome.Skipped(slides)), outcomes)
+        assertEquals(listOf("Outline.pdf"), files.attempts)
+    }
+
+    @Test
+    fun `CLI reports a failed batch item and saves later selections to the requested directory`() {
+        access.login(token)
+        val output = mutableListOf<String>()
+        val commands = CourseCommands(service, output::add, Messages(Locale.ENGLISH))
+        assertEquals(1, commands.run(listOf("download-many", "21:56:3", "21:56:2", "--directory", "My Materials")))
+        assertTrue(output.first().contains("[21:56:3] Failed"))
+        assertTrue(output.last().contains("My Materials/Recursion_Slides.pdf"))
+        assertEquals(listOf(21L), repository.contentCalls)
+    }
+
     private class FakeCourses : CourseRepository {
         var called = false
         var reject = false
         var courses = listOf(Course(12, "Programming"))
         var restrictedCourse: Long? = null
+        val contentCalls = mutableListOf<Long>()
         var receivedToken: AccessToken? = null
         var receivedUser: Long? = null
 
@@ -130,6 +193,7 @@ class CourseServiceTest {
         }
 
         override fun getContents(token: AccessToken, courseId: Long): List<CourseSection> {
+            contentCalls += courseId
             if (courseId == restrictedCourse) throw MoodleException.Permission("error.api.courseAccess")
             if (courseId == 21L) {
                 val module = CourseModule(
@@ -178,8 +242,12 @@ class CourseServiceTest {
         var selected: CourseFile? = null
         var directory: String? = null
         var receivedToken: AccessToken? = null
+        val attempts = mutableListOf<String>()
+        val failures = mutableMapOf<String, MoodleException>()
 
         override fun download(token: AccessToken, file: CourseFile, directory: String): DownloadedFile {
+            attempts += file.name
+            failures[file.name]?.let { throw it }
             selected = file
             this.directory = directory
             receivedToken = token

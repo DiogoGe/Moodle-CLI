@@ -59,7 +59,7 @@ class MoodleMcpServerTest {
                 ?.jsonObject
                 ?.get("tools")
                 ?.jsonArray
-            assertEquals(9, tools?.size)
+            assertEquals(10, tools?.size)
             send(client, 3, "tools/call", """{"name":"list_courses","arguments":{"limit":1}}""")
             val reply = Json.parseToJsonElement(reader.readLine()).jsonObject
             assertEquals("3", reply["id"].toString())

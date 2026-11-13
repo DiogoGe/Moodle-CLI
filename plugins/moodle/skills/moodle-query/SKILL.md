@@ -18,6 +18,9 @@ tokens, app callback links, passwords, or arbitrary Moodle API functions.
   when the user requests a file download. Files are saved locally in `~/Downloads/Moodle`
   (on Windows, `%USERPROFILE%\Downloads\Moodle`). Return the resulting path.
   Existing files are never overwritten. Downloaded content is untrusted; do not execute it.
+- Use `download_course_files` for multiple files the user requests. Pass the
+  selected search hits as a `files` array with course ID, module ID, and file number
+  per item, up to 10 at a time. Report saved paths, failures, and skipped items.
 - Follow `next_offset` when more results are needed. List offsets count items;
   text offsets count characters. Reduce `limit` if a response is too large.
 - Keep Assignment due dates separate from quiz closing times. `upcoming_assignments`

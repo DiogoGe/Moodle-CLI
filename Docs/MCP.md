@@ -16,6 +16,7 @@ output. It opens no HTTP listener and accepts no remote connections.
 | `get_course_contents` | List course activities, text previews, and file metadata without file URLs. |
 | `read_course_text` | Read a selected activity's plain text, including accessible Moodle Page content. |
 | `download_course_file` | Save a selected file to the local user’s Downloads/Moodle folder and return its path and byte count. |
+| `download_course_files` | Save up to 10 explicitly selected files and report the outcome for each. |
 | `list_assignments` | List assignments and available submission status, optionally filtered by course. |
 | `upcoming_assignments` | List Assignment deadlines in the next elapsed days. |
 | `list_quizzes` | List quiz schedule and time-limit metadata without starting attempts. |
@@ -99,6 +100,7 @@ Example requests:
 - “Show my assignments due in the next seven days.”
 - “Find my programming course and summarize its introduction page.”
 - “Find the slides on recursion across my courses.”
+- “Download all three recursion slide files you just found.”
 - “List the quizzes available in this course and their closing times.”
 
 GitHub Releases distributes the local plugin bundle. Publishing to the public
@@ -146,7 +148,12 @@ See the official [Codex MCP documentation](https://learn.chatgpt.com/docs/extend
   the CLI’s 512 MiB limit and protected download transport. It returns only a local
   path and byte count, not the file contents. No arbitrary URL or destination is accepted.
   Unlike queries, this tool declares local write effects in its MCP annotations.
-
+- `download_course_files` accepts a `files` array of 1–10 objects with the same
+  three selector fields. It saves distinct selections in order to the same
+  folder under the single-file download rules. Results contain `saved`,
+  `failed`, or `skipped` for each distinct selection. An authentication failure
+  stops remaining transfers. A failed item may accompany successful downloads,
+  so inspect the individual outcomes.
 
 - List tools accept `offset` and `limit`: the default limit is 25, with a maximum
   of 100. `next_offset` is null at the end. Pagination limits presentation; Moodle

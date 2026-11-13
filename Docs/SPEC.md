@@ -49,6 +49,7 @@ native resource ownership, and the limitations of OS credential storage.
 - Convert HTML to terminal-safe plain text without executing scripts or fetching
   embedded resources during rendering.
 - Download one file selected by course ID, course-module ID, and displayed file number.
+- Download up to 10 selected files in one operation, reporting individual outcomes.
 - Accept an optional destination directory and default to `./downloads`.
 - Never overwrite an existing file or symbolic link. There is no overwrite option.
 - Reject unsafe path components, terminal controls, and reserved Windows device names.
@@ -123,8 +124,9 @@ native resources and license notices. Java remains an external prerequisite.
 Expose a local stdio MCP server with an explicit allowlist of study queries that
 reuse the existing services and saved native login. Do not expose login, token
 retrieval, submissions, quiz attempts, or arbitrary API/URL tools.
-MCP supports individual file downloads into the local user’s Downloads/Moodle folder
-without overwriting files, returning only the saved path and byte count.
+MCP supports individual and batch file downloads into the local user’s
+Downloads/Moodle folder without overwriting files. Successful results include the
+saved path and byte count.
 Bound and paginate results, omit resource URLs and identity metadata, and return
 sanitized errors. Treat returned course content as untrusted data in the bundled
 Codex skill. Document that retrieved content enters the Codex conversation.
@@ -133,7 +135,6 @@ See [MCP](MCP.md) for setup and the supported tool contract.
 ## Future extensions
 
 - `setup <url>` to validate and persist another Moodle instance's base URL.
-- Bulk downloads with an explicit policy for existing files and course/section layout.
 - A native credential-store adapter for Linux.
 - Release packaging with a bundled Java runtime.
 

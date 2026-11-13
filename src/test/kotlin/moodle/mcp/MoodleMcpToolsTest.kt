@@ -26,6 +26,7 @@ class MoodleMcpToolsTest {
                 "get_course_contents",
                 "read_course_text",
                 "download_course_file",
+                "download_course_files",
                 "list_assignments",
                 "upcoming_assignments",
                 "list_quizzes"
@@ -36,7 +37,7 @@ class MoodleMcpToolsTest {
         )
         assertTrue(
             fixture.tools.tools
-                .filter { it.name != "download_course_file" }
+                .filterNot { it.name.startsWith("download_course_file") }
                 .all { it.annotations?.readOnlyHint == true }
         )
         val first = call("list_courses")
@@ -176,6 +177,60 @@ class MoodleMcpToolsTest {
     fun `invalid download arguments cannot cause network or filesystem access`() = runBlocking {
         for (extra in listOf("", ""","file_number":0""", ""","file_number":"1" """, ""","file_number":1,"directory":"/tmp" """)) {
             val result = fixture.tools.call("download_course_file", objectOf("""{"course_id":1,"module_id":5$extra}"""))
+            assertEquals(true, result.isError)
+        }
+        assertEquals(0, fixture.courseCalls)
+        assertEquals(null, fixture.downloadedFile)
+    }
+
+    @Test
+    fun `batch tool reports a result per distinct selector without exposing file URLs`() = runBlocking {
+        val result = call(
+            "download_course_files",
+            """{"files":[{"course_id":1,"module_id":5,"file_number":3},{"course_id":1,"module_id":5,"file_number":1},
+                {"course_id":1,"module_id":5,"file_number":1}]}"""
+        )
+        val items = result["items"]?.jsonArray.orEmpty().map { it.jsonObject }
+        assertEquals(listOf("failed", "saved"), items.map { it["status"]?.jsonPrimitive?.content })
+        assertEquals(
+            "error.course.fileNumber",
+            items
+                .first()["error"]
+                ?.jsonObject
+                ?.get("code")
+                ?.jsonPrimitive
+                ?.content
+        )
+        assertTrue(
+            items
+                .last()["path"]
+                ?.jsonPrimitive
+                ?.content
+                .orEmpty()
+                .endsWith("notes.pdf")
+        )
+        assertEquals(1, fixture.courseCalls)
+        assertFalse(result.toString().contains(fixture.token))
+        assertFalse(result.toString().contains("pluginfile.php"))
+        val annotations = fixture.tools.tools
+            .single { it.name == "download_course_files" }
+            .annotations
+        assertEquals(false, annotations?.readOnlyHint)
+    }
+
+    @Test
+    fun `invalid batch selections are all rejected before requests or writes`() = runBlocking {
+        val valid = """{"course_id":1,"module_id":5,"file_number":1}"""
+        val invalid = listOf(
+            "[]",
+            List(11) { valid }.joinToString(",", "[", "]"),
+            """[$valid,{"course_id":1,"module_id":5,"file_number":"2"}]""",
+            """[$valid,{"course_id":1,"module_id":5,"file_number":2,"url":"https://fixture.invalid"}]""",
+            """[$valid,{"course_id":1,"module_id":5}]""",
+            "[$valid,null]"
+        )
+        for (files in invalid) {
+            val result = fixture.tools.call("download_course_files", objectOf("""{"files":$files}"""))
             assertEquals(true, result.isError)
         }
         assertEquals(0, fixture.courseCalls)

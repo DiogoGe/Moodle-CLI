@@ -1,14 +1,19 @@
 package moodle.mcp
 
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import moodle.MoodleApplication
+import moodle.application.CourseService
+import moodle.cli.i18n.Messages
+import moodle.domain.entities.CourseDownloadOutcome
+import moodle.domain.entities.CourseFileSelection
 import moodle.domain.exceptions.MoodleException
 import java.nio.file.Path
 
-internal class MoodleQueries(private val application: MoodleApplication) {
+internal class MoodleQueries(private val application: MoodleApplication, private val messages: Messages) {
     private val content = McpContent()
 
     fun execute(name: String, arguments: McpArguments): JsonObject = when (name) {
@@ -18,6 +23,7 @@ internal class MoodleQueries(private val application: MoodleApplication) {
         "get_course_contents" -> courseContents(arguments)
         "read_course_text" -> readText(arguments)
         "download_course_file" -> download(arguments)
+        "download_course_files" -> downloadMany(arguments)
         "list_assignments" -> assignments(arguments)
         "upcoming_assignments" -> upcoming(arguments)
         "list_quizzes" -> quizzes(arguments)
@@ -62,14 +68,51 @@ internal class MoodleQueries(private val application: MoodleApplication) {
     }
 
     private fun download(arguments: McpArguments): JsonObject {
-        val courseId = arguments.id("course_id")
-        val moduleId = arguments.id("module_id")
-        val fileNumber = arguments.requiredNumber("file_number", 1, Int.MAX_VALUE)
-        val directory = Path.of(System.getProperty("user.home"), "Downloads", "Moodle").toString()
-        val file = application.courses.download(courseId, moduleId, fileNumber, directory)
+        val selection = fileSelection(arguments)
+        val file = application.courses.download(selection.courseId, selection.moduleId, selection.fileNumber, downloadDirectory())
         return buildJsonObject {
             put("path", file.path)
             put("bytes", file.bytes)
+        }
+    }
+
+    private fun downloadMany(arguments: McpArguments): JsonObject {
+        val selections = arguments
+            .requiredObjects("files", CourseService.MAX_BATCH_FILES, McpSchemas.fileSelectionFields)
+            .map(::fileSelection)
+        val outcomes = application.courses.downloadMany(selections, downloadDirectory())
+        return buildJsonObject { put("items", JsonArray(outcomes.map(::downloadOutcome))) }
+    }
+
+    private fun fileSelection(arguments: McpArguments): CourseFileSelection = CourseFileSelection(
+        arguments.id("course_id"),
+        arguments.id("module_id"),
+        arguments.requiredNumber("file_number", 1, Int.MAX_VALUE)
+    )
+
+    private fun downloadDirectory(): String = Path.of(System.getProperty("user.home"), "Downloads", "Moodle").toString()
+
+    private fun downloadOutcome(outcome: CourseDownloadOutcome): JsonObject = buildJsonObject {
+        put("course_id", outcome.selection.courseId)
+        put("module_id", outcome.selection.moduleId)
+        put("file_number", outcome.selection.fileNumber)
+        when (outcome) {
+            is CourseDownloadOutcome.Saved -> {
+                put("status", "saved")
+                put("path", outcome.file.path)
+                put("bytes", outcome.file.bytes)
+            }
+            is CourseDownloadOutcome.Failed -> {
+                put("status", "failed")
+                put(
+                    "error",
+                    buildJsonObject {
+                        put("code", outcome.error.messageKey)
+                        put("message", messages.error(outcome.error))
+                    }
+                )
+            }
+            is CourseDownloadOutcome.Skipped -> put("status", "skipped")
         }
     }
 

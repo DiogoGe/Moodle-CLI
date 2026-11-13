@@ -56,6 +56,7 @@ class MoodleCliTest {
         })
         val commands = listOf(
             listOf("search", "recursion", "slides"),
+            listOf("download-many", "42:7:1", "42:7:2"),
             listOf("tasks"),
             listOf("tasks", "--course", "42"),
             listOf("assignments", "--course", "42"),
