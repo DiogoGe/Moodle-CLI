@@ -13,7 +13,10 @@ repositories {
 }
 
 dependencies {
-    implementation(libs.mcp.server)
+    implementation(libs.mcp.server) {
+        // This application uses stdio. The SDK's HTTP transports pull in Ktor and kotlin-reflect.
+        exclude(group = "io.ktor")
+    }
     implementation(libs.kotlinx.coroutines.core)
     runtimeOnly(libs.slf4j.nop)
     implementation(libs.jna)

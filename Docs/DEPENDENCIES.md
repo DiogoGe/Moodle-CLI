@@ -16,9 +16,8 @@
 | MCP Kotlin server SDK | MCP protocol, schemas, and stdio lifecycle for the optional local Codex integration. |
 | Kotlin Test with JUnit | Support automated tests. |
 
-Retrofit brings in OkHttp as a transitive dependency. We do not need Ktor or a
-second Moodle HTTP client. Kotlin serialization also requires its Kotlin compiler plugin;
-configure that plugin alongside the JSON runtime library.
+Retrofit brings in OkHttp as a transitive dependency. Kotlin serialization also
+requires its Kotlin compiler plugin alongside the JSON runtime library.
 
 Dependency and plugin versions are defined in `gradle/libs.versions.toml`.
 Project and Java toolchain versions are in `gradle.properties`; the Gradle version
@@ -67,7 +66,6 @@ external prerequisite. Plugin versions stay in the version catalog.
 ## Local MCP protocol
 
 The official MCP Kotlin server SDK owns protocol negotiation, transport framing,
-capability handling, and stdio shutdown. Its coroutine and Ktor modules are
-transitive dependencies; this project does not start a Ktor HTTP server or use it
-as another Moodle API client. Retrofit remains the Moodle transport. The local
-plugin needs no OpenAI SDK or API key; Codex is the MCP client.
+capability handling, and stdio shutdown. The build excludes its transitive Ktor
+dependencies, which support the SDK's HTTP transports. Retrofit handles Moodle
+requests. The local plugin needs no OpenAI SDK or API key; Codex is the MCP client.
