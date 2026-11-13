@@ -6,5 +6,6 @@ data class CourseModule(
     val type: String,
     val description: String,
     val texts: List<String>,
-    val files: List<CourseFile>
+    val files: List<CourseFile>,
+    val noViewLink: Boolean = false
 )

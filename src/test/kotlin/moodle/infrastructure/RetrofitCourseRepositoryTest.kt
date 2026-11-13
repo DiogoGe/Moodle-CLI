@@ -55,6 +55,23 @@ class RetrofitCourseRepositoryTest {
     }
 
     @Test
+    fun `inline activities preserve the absence of a separate Moodle page`() {
+        withServer("""[{"id":1,"name":"Week","modules":[{"id":10,"name":"Text","modname":"label","noviewlink":true}]}]""") {
+                repository,
+                _
+            ->
+            assertTrue(
+                repository
+                    .getContents(token, 12)
+                    .single()
+                    .modules
+                    .single()
+                    .noViewLink
+            )
+        }
+    }
+
+    @Test
     fun `malformed course responses and redirects are failures`() {
         withServer("<html>Login</html>") { repository, _ ->
             assertFailsWith<MoodleException.Connection> { repository.getCourses(token, 42) }

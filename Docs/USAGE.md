@@ -27,6 +27,7 @@ Memory-only sessions must stay in the same process; see [Saved login](GETTING_ST
 | `courses` | List enrolled courses with IDs and names. |
 | `course <course-id>` | Show accessible sections, activity descriptions, inline text, and numbered files. |
 | `search <keywords>` | Search enrolled course titles, activity names, and file names. |
+| `open <course-id> <module-id>` | Open a Moodle activity in the default browser. |
 | `read <course-id> <module-id>` | Read an activity's text, including the content of Moodle Page resources. |
 | `download <course-id> <module-id> <file-number> [directory]` | Save one listed file. |
 | `download-many <course-id>:<module-id>:<file-number> ... [--directory <directory>]` | Save up to 10 selected files. |
@@ -71,6 +72,17 @@ Search ignores case and treats dots, hyphens, and underscores as separators.
 File results include the activity, course, a selector for `download-many`, and a
 ready-to-use `download` command. Search reports if Moodle denied access to
 some course contents. It does not read the contents of files or pages.
+
+## Open a result in Moodle
+
+```text
+open 1234 5678
+```
+
+Use the command shown under an activity or file result. A file result opens the
+activity containing that file. For activities displayed inline, the link points
+to their position on the course page. The browser uses its own Moodle login.
+If the browser cannot be launched, the CLI prints the URL for you to open manually.
 
 ## Download a file
 

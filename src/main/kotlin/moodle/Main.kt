@@ -37,7 +37,7 @@ private fun createCli(messages: Messages, useKeychain: Boolean): MoodleCli {
     val access = application.access
     val clock = Clock.systemDefaultZone()
     val study = StudyCommands(
-        CourseCommands(application.courses, messages = messages)::run,
+        CourseCommands(application.courses, messages = messages, config = config)::run,
         AssignmentCommands(application.assignments, clock, messages = messages)::run,
         QuizCommands(application.quizzes, clock, messages = messages)::run,
         AgendaCommands(application.agenda, clock, messages = messages)::run

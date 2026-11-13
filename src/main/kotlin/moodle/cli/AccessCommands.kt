@@ -8,9 +8,7 @@ import moodle.domain.PublicStatus
 import moodle.domain.SiteInfo
 import moodle.domain.exceptions.MoodleException
 import moodle.domain.interfaces.LoginBrowser
-import java.awt.Desktop
 import java.io.Console
-import java.net.URI
 
 class AccessCommands(
     private val service: AccessService,
@@ -85,7 +83,7 @@ class AccessCommands(
     private fun manualLogin(console: Console) {
         val attempt = browserLogin.begin()
         showManualLoginInstructions(attempt)
-        openBrowser(attempt.launchUrl)
+        if (!openInDefaultBrowser(attempt.launchUrl)) output(messages.text("login.open"))
         val reader = LoginCallbackReader(
             browserLogin,
             { console.readPassword("%s", messages.text("login.prompt")) },
@@ -93,16 +91,6 @@ class AccessCommands(
             messages
         )
         showSiteInfo(service.login(reader.read(attempt)))
-    }
-
-    private fun openBrowser(url: URI) {
-        try {
-            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                Desktop.getDesktop().browse(url)
-            }
-        } catch (_: Exception) {
-            output(messages.text("login.open"))
-        }
     }
 
     private fun showManualLoginInstructions(attempt: LoginAttempt) {

@@ -20,7 +20,8 @@ private fun CourseModuleDto.toDomain(): CourseModule = CourseModule(
     modname,
     description,
     contents.filter { it.type == "content" }.mapNotNull { it.content },
-    contents.filter { it.type == "file" }.mapNotNull { it.toDomain() }
+    contents.filter { it.type == "file" }.mapNotNull { it.toDomain() },
+    noViewLink = noviewlink
 )
 
 private fun CourseContentDto.toDomain(): CourseFile? = fileurl?.let { CourseFile(filename, it, filesize, mimetype) }

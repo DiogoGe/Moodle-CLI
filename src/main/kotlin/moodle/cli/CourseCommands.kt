@@ -2,25 +2,31 @@ package moodle.cli
 
 import moodle.application.CourseService
 import moodle.cli.i18n.Messages
+import moodle.config.MoodleConfig
 import moodle.domain.entities.CourseDownloadOutcome
 import moodle.domain.entities.CourseFileSelection
 import moodle.domain.entities.CourseModule
 import moodle.domain.entities.CourseSearchHit
 import moodle.domain.exceptions.MoodleException
 import moodle.presentation.PlainText
+import java.net.URI
 
 class CourseCommands(
     private val service: CourseService,
     private val output: (String) -> Unit = ::println,
-    private val messages: Messages = Messages()
+    private val messages: Messages = Messages(),
+    config: MoodleConfig = MoodleConfig(),
+    private val browse: (URI) -> Boolean = ::openInDefaultBrowser
 ) {
     private val text = PlainText()
+    private val site = URI(config.baseUrl)
 
     fun run(args: List<String>): Int {
         when {
             args == listOf("courses") -> showCourses()
             args.size == 2 && args[0] == "course" -> showContents(id(args[1]))
             args.firstOrNull() == "search" -> search(args.drop(1).joinToString(" "))
+            args.size == 3 && args[0] == "open" -> return openActivity(id(args[1]), id(args[2]))
             args.size == 3 && args[0] == "read" -> output(text.render(service.readText(id(args[1]), id(args[2]))))
             args.size in 4..5 && args[0] == "download" -> download(args)
             args.firstOrNull() == "download-many" -> return downloadMany(args.drop(1))
@@ -56,8 +62,10 @@ class CourseCommands(
         when (hit) {
             is CourseSearchHit.CourseTitle ->
                 output(messages.text("search.course", text.label(hit.course.name), hit.course.id))
-            is CourseSearchHit.Activity ->
+            is CourseSearchHit.Activity -> {
                 output(messages.text("search.activity", text.label(hit.name), text.label(hit.course.name), hit.course.id, hit.id))
+                output(messages.text("course.open", hit.course.id, hit.id))
+            }
             is CourseSearchHit.File -> {
                 val activity = hit.activity
                 val selection = CourseFileSelection(activity.course.id, activity.id, hit.number)
@@ -71,12 +79,14 @@ class CourseCommands(
                     )
                 )
                 output(messages.text("course.download", activity.course.id, activity.id, hit.number))
+                output(messages.text("course.open", activity.course.id, activity.id))
             }
         }
     }
 
     private fun showModule(courseId: Long, module: CourseModule) {
         output(messages.text("course.module", module.id, text.label(module.name), text.label(module.type)))
+        output(messages.text("course.open", courseId, module.id))
         showText(module.description)
         module.texts.forEach(::showText)
         if (module.type == "page") output(messages.text("course.read", courseId, module.id))
@@ -84,6 +94,19 @@ class CourseCommands(
             output(messages.text("course.file", index + 1, text.label(file.name), file.size))
             output(messages.text("course.download", courseId, module.id, index + 1))
         }
+    }
+
+    private fun openActivity(courseId: Long, moduleId: Long): Int {
+        val module = service.getModule(courseId, moduleId)
+        val path = if (module.noViewLink || !MODULE_TYPE.matches(module.type)) {
+            "course/view.php?id=$courseId#module-$moduleId"
+        } else {
+            "mod/${module.type}/view.php?id=$moduleId&forceview=1"
+        }
+        val url = site.resolve(path)
+        val opened = browse(url)
+        output(messages.text(if (opened) "course.opened" else "course.openManual", url))
+        return if (opened) 0 else 1
     }
 
     private fun showText(html: String) {
@@ -131,4 +154,8 @@ class CourseCommands(
 
     private fun id(value: String): Long = value.toLongOrNull()?.takeIf { it > 0 }
         ?: throw MoodleException.Input("error.input.id")
+
+    private companion object {
+        val MODULE_TYPE = Regex("[a-z][a-z0-9_]*")
+    }
 }

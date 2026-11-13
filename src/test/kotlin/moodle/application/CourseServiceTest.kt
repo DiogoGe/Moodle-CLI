@@ -2,6 +2,7 @@ package moodle.application
 
 import moodle.cli.CourseCommands
 import moodle.cli.i18n.Messages
+import moodle.config.MoodleConfig
 import moodle.domain.AccessToken
 import moodle.domain.PublicStatus
 import moodle.domain.SiteInfo
@@ -17,6 +18,7 @@ import moodle.domain.exceptions.MoodleException
 import moodle.domain.interfaces.CourseFiles
 import moodle.domain.interfaces.CourseRepository
 import moodle.domain.interfaces.MoodleAccess
+import java.net.URI
 import java.util.Locale
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -61,6 +63,7 @@ class CourseServiceTest {
         assertTrue(output.any { it.contains("12  Programming") })
         assertTrue(output.any { it.contains("Overview & introduction") })
         assertTrue(output.any { it.contains("download 12 34 1") })
+        assertTrue(output.any { it.trim().endsWith("open 12 34") })
         assertFalse(output.any { it.contains("<p>") || it.contains(token.value) })
         commands.run(listOf("read", "12", "34"))
         assertTrue(output.last().contains("Full page text"))
@@ -104,6 +107,7 @@ class CourseServiceTest {
         assertTrue(output.any { it.contains("incomplete") })
         assertTrue(output.any { it.contains("Recursion_Slides.pdf") && it.contains("Mathematics") })
         assertTrue(output.any { it.trim() == "download 21 56 2" })
+        assertTrue(output.any { it.trim().endsWith("open 21 56") })
         assertEquals(null, files.selected)
     }
 
@@ -113,6 +117,47 @@ class CourseServiceTest {
         assertFailsWith<MoodleException.Input> { service.search(" - _ ") }
         assertFailsWith<MoodleException.Input> { service.search("x".repeat(121)) }
         assertFalse(repository.called)
+    }
+
+    @Test
+    fun `open sends the verified activity to the browser on the configured site`() {
+        access.login(token)
+        val visited = mutableListOf<URI>()
+        val commands = CourseCommands(
+            service,
+            output = {},
+            config = MoodleConfig("https://moodle.example/campus/"),
+            browse = visited::add
+        )
+
+        assertEquals(0, commands.run(listOf("open", "12", "34")))
+        assertEquals(listOf(URI("https://moodle.example/campus/mod/page/view.php?id=34&forceview=1")), visited)
+        assertFailsWith<MoodleException.Input> { commands.run(listOf("open", "12", "56")) }
+        assertFailsWith<MoodleException.Input> { commands.run(listOf("open", "12", "-1")) }
+        assertEquals(1, visited.size)
+        assertEquals(listOf(12L, 12L), repository.contentCalls)
+    }
+
+    @Test
+    fun `open prints a copyable course link when the activity has no page and the browser cannot launch`() {
+        access.login(token)
+        repository.noViewLink = true
+        val output = mutableListOf<String>()
+        val commands = CourseCommands(service, output::add, Messages(Locale.ENGLISH), MoodleConfig("$site/"), browse = { false })
+
+        assertEquals(1, commands.run(listOf("open", "12", "34")))
+        assertTrue(output.single().endsWith("$site/course/view.php?id=12#module-34"))
+    }
+
+    @Test
+    fun `open keeps an unexpected module type on the configured Moodle site`() {
+        access.login(token)
+        repository.moduleType = "../../external?token=fixture"
+        val visited = mutableListOf<URI>()
+        val commands = CourseCommands(service, output = {}, config = MoodleConfig("$site/"), browse = visited::add)
+
+        assertEquals(0, commands.run(listOf("open", "12", "34")))
+        assertEquals(URI("$site/course/view.php?id=12#module-34"), visited.single())
     }
 
     @Test
@@ -180,6 +225,8 @@ class CourseServiceTest {
         var reject = false
         var courses = listOf(Course(12, "Programming"))
         var restrictedCourse: Long? = null
+        var noViewLink = false
+        var moduleType = "page"
         val contentCalls = mutableListOf<Long>()
         var receivedToken: AccessToken? = null
         var receivedUser: Long? = null
@@ -221,7 +268,7 @@ class CourseServiceTest {
                     CourseModule(
                         34,
                         "Instructions",
-                        "page",
+                        moduleType,
                         "<p>Short intro</p>",
                         emptyList(),
                         listOf(
@@ -231,7 +278,8 @@ class CourseServiceTest {
                                 0,
                                 "text/html"
                             )
-                        )
+                        ),
+                        noViewLink = noViewLink
                     )
                 )
             )

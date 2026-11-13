@@ -41,9 +41,13 @@ class CourseService(private val access: AccessService, private val repository: C
         }
     }
 
-    fun readText(courseId: Long, moduleId: Long): String {
+    internal fun getModule(courseId: Long, moduleId: Long): CourseModule {
         validateId(moduleId)
-        val module = findModule(getContents(courseId), moduleId)
+        return findModule(getContents(courseId), moduleId)
+    }
+
+    fun readText(courseId: Long, moduleId: Long): String {
+        val module = getModule(courseId, moduleId)
         val inline = listOf(module.description) + module.texts
         val page = module.files.firstOrNull { module.type == "page" && it.name == "index.html" }
         val pageText = page?.let { file -> access.withSession { token, _ -> files.readText(token, file) } }

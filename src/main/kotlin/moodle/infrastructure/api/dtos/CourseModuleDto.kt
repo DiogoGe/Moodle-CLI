@@ -9,5 +9,6 @@ internal data class CourseModuleDto(
     val modname: String,
     val description: String = "",
     val uservisible: Boolean = true,
-    val contents: List<CourseContentDto> = emptyList()
+    val contents: List<CourseContentDto> = emptyList(),
+    val noviewlink: Boolean = false
 )
