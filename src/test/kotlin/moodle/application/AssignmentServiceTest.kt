@@ -24,7 +24,7 @@ class AssignmentServiceTest {
     private val service = AssignmentService(access, repository, clock)
 
     @Test
-    fun `upcoming includes window boundaries and excludes past missing and distant deadlines`() {
+    fun `upcoming includes window boundaries and skips status requests beyond the window`() {
         repository.result = AssignmentList(
             listOf(
                 assignment(1, now.plusSeconds(86_400)),
@@ -35,6 +35,8 @@ class AssignmentServiceTest {
             )
         )
         assertEquals(listOf(5L, 1L), service.getUpcoming(1).items.map { it.id })
+        assertEquals(listOf(1L, 2L, 3L, 5L), repository.statusCalls)
+        assertEquals(1, repository.listCalls)
     }
 
     @Test
@@ -56,14 +58,19 @@ class AssignmentServiceTest {
 
     @Test
     fun `individual extensions apply before filtering and never shorten the course deadline`() {
-        repository.result = AssignmentList(listOf(assignment(1, now.minusSeconds(1)), assignment(2, now.plusSeconds(60))))
+        repository.result = AssignmentList(
+            listOf(assignment(1, now.minusSeconds(1)), assignment(2, now.plusSeconds(60)), assignment(3, null)),
+            partial = true
+        )
         repository.details[1] = SubmissionDetails(SubmissionStatus.DRAFT, now.plusSeconds(120))
         repository.details[2] = SubmissionDetails(SubmissionStatus.SUBMITTED, now.minusSeconds(120))
-        val result = service.getUpcoming(1).items
-        assertEquals(listOf(2L, 1L), result.map { it.id })
-        assertEquals(now.plusSeconds(120), result.last().dueDate)
-        assertEquals(SubmissionStatus.SUBMITTED, result.first().submissionStatus)
-        assertEquals(SubmissionStatus.DRAFT, result.last().submissionStatus)
+        repository.details[3] = SubmissionDetails(extensionDueDate = now.plusSeconds(30))
+        val result = service.getUpcoming(1)
+        assertTrue(result.partial)
+        assertEquals(listOf(3L, 2L, 1L), result.items.map { it.id })
+        assertEquals(listOf(now.plusSeconds(30), now.plusSeconds(60), now.plusSeconds(120)), result.items.map { it.dueDate })
+        assertEquals(SubmissionStatus.SUBMITTED, result.items[1].submissionStatus)
+        assertEquals(SubmissionStatus.DRAFT, result.items.last().submissionStatus)
     }
 
     @Test
