@@ -2,6 +2,7 @@ package moodle
 
 import moodle.application.BrowserLoginService
 import moodle.cli.AccessCommands
+import moodle.cli.AgendaCommands
 import moodle.cli.AssignmentCommands
 import moodle.cli.CliOptions
 import moodle.cli.CourseCommands
@@ -38,7 +39,8 @@ private fun createCli(messages: Messages, useKeychain: Boolean): MoodleCli {
     val study = StudyCommands(
         CourseCommands(application.courses, messages = messages)::run,
         AssignmentCommands(application.assignments, clock, messages = messages)::run,
-        QuizCommands(application.quizzes, clock, messages = messages)::run
+        QuizCommands(application.quizzes, clock, messages = messages)::run,
+        AgendaCommands(application.agenda, clock, messages = messages)::run
     )
     val commands = AccessCommands(
         access,

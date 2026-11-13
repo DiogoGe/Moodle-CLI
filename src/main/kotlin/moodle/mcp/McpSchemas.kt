@@ -8,6 +8,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import moodle.application.AgendaService
 import moodle.application.CourseSearch
 import moodle.application.CourseService
 
@@ -19,7 +20,7 @@ internal object McpSchemas {
     )
     val fileSelectionFields: Set<String> get() = fileSelection.keys
 
-    fun tools(): List<Tool> = courseTools() + downloadTools() + assignmentTools() + quizTools()
+    fun tools(): List<Tool> = courseTools() + downloadTools() + assignmentTools() + quizTools() + agendaTool()
 
     private fun courseTools(): List<Tool> = listOf(
         tool("health", "Check Moodle connectivity and saved login availability without exposing identity or credentials."),
@@ -99,6 +100,12 @@ internal object McpSchemas {
             "List quiz schedule metadata without starting attempts or reading questions.",
             page() + mapOf("course_id" to id())
         )
+    )
+
+    private fun agendaTool(): Tool = tool(
+        "list_agenda",
+        "List assignment deadlines, quiz openings and quiz closing times in chronological order. Defaults to the next 7 days.",
+        page() + ("days" to integer("Number of elapsed 24-hour days. Defaults to 7.", 1, AgendaService.MAX_DAYS))
     )
 
     private fun tool(

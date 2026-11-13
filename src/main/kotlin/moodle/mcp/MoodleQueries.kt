@@ -6,6 +6,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import moodle.MoodleApplication
+import moodle.application.AgendaService
 import moodle.application.CourseService
 import moodle.cli.i18n.Messages
 import moodle.domain.entities.CourseDownloadOutcome
@@ -27,6 +28,7 @@ internal class MoodleQueries(private val application: MoodleApplication, private
         "list_assignments" -> assignments(arguments)
         "upcoming_assignments" -> upcoming(arguments)
         "list_quizzes" -> quizzes(arguments)
+        "list_agenda" -> agenda(arguments)
         else -> throw MoodleException.Input("error.mcp.arguments")
     }
 
@@ -133,5 +135,12 @@ internal class MoodleQueries(private val application: MoodleApplication, private
         val page = McpPage(arguments)
         val result = application.quizzes.getQuizzes(arguments.optionalId("course_id"))
         return JsonObject(page.render(result.items, content::quiz) + ("partial" to JsonPrimitive(result.partial)))
+    }
+
+    private fun agenda(arguments: McpArguments): JsonObject {
+        val page = McpPage(arguments)
+        val days = arguments.number("days", AgendaService.DEFAULT_DAYS, 1, AgendaService.MAX_DAYS)
+        val result = application.agenda.getAgenda(days)
+        return JsonObject(page.render(result.items, content::agendaEvent) + ("partial" to JsonPrimitive(result.partial)))
     }
 }

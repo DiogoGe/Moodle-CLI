@@ -7,11 +7,13 @@ import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import moodle.domain.entities.AgendaEvent
 import moodle.domain.entities.Assignment
 import moodle.domain.entities.Course
 import moodle.domain.entities.CourseSearchHit
 import moodle.domain.entities.Quiz
 import moodle.presentation.PlainText
+import java.util.Locale
 
 /** Deliberate output allowlist: no tokens, file URLs, raw HTML, or API warning payloads. */
 internal class McpContent {
@@ -96,6 +98,14 @@ internal class McpContent {
         put("opens_at", quiz.timing?.opensAt?.let { JsonPrimitive(it.toString()) } ?: JsonNull)
         put("closes_at", quiz.timing?.closesAt?.let { JsonPrimitive(it.toString()) } ?: JsonNull)
         put("time_limit_seconds", quiz.timing?.timeLimit?.let { JsonPrimitive(it.seconds) } ?: JsonNull)
+    }
+
+    fun agendaEvent(event: AgendaEvent): JsonObject = buildJsonObject {
+        put("kind", event.kind.name.lowercase(Locale.ROOT))
+        put("id", event.activityId)
+        put("course_id", event.courseId)
+        put("name", text.label(event.name).take(1000))
+        put("at", event.at.toString())
     }
 
     fun read(html: String, arguments: McpArguments): JsonObject {

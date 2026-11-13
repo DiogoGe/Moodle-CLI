@@ -4,11 +4,13 @@ package moodle.cli
 class StudyCommands(
     private val courses: (List<String>) -> Int,
     private val assignments: (List<String>) -> Int,
-    private val quizzes: (List<String>) -> Int
+    private val quizzes: (List<String>) -> Int,
+    private val agenda: (List<String>) -> Int
 ) {
     fun run(args: List<String>): Int = when (args.firstOrNull()) {
         "tasks", "assignments", "upcoming" -> assignments(args)
         "quizzes" -> quizzes(args)
+        "agenda" -> agenda(args)
         else -> courses(args)
     }
 }

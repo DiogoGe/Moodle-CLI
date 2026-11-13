@@ -20,6 +20,7 @@ output. It opens no HTTP listener and accepts no remote connections.
 | `list_assignments` | List assignments and available submission status, optionally filtered by course. |
 | `upcoming_assignments` | List Assignment deadlines in the next elapsed days. |
 | `list_quizzes` | List quiz schedule and time-limit metadata without starting attempts. |
+| `list_agenda` | Show assignment deadlines, quiz openings, and quiz closing times in one timeline. |
 
 There are no MCP tools for login, logout, assignment submissions, quiz
 attempts, arbitrary URLs, or arbitrary Moodle API functions. These boundaries do
@@ -98,6 +99,7 @@ refreshing it: `./gradlew clean` removes the generated source under `build/`.
 Example requests:
 
 - “Show my assignments due in the next seven days.”
+- “Show my Moodle agenda for the next two weeks.”
 - “Find my programming course and summarize its introduction page.”
 - “Find the slides on recursion across my courses.”
 - “Download all three recursion slide files you just found.”
@@ -167,6 +169,10 @@ See the official [Codex MCP documentation](https://learn.chatgpt.com/docs/extend
 - Assignment and quiz filters accept an optional `course_id`. `upcoming_assignments`
   requires `days` between 1 and 366. Quiz closing times remain separate from
   Assignment due dates.
+- `list_agenda` accepts optional `days` from 1 to 366 and defaults to 7. It
+  paginates chronological events of kind `assignment_due`, `quiz_opens`, or
+  `quiz_closes`. Each event gives the course ID, source assignment or quiz ID,
+  name, and time. The response marks incomplete coverage with `partial`.
 - Date/time values are ISO-8601 instants. Null timing is distinguished from an
   unrestricted known schedule by `timing_available`; assignment and quiz lists
   preserve Moodle's `partial` indicator.

@@ -54,6 +54,10 @@ Individual extensions are applied before deadline filtering; `Clock` makes windo
 boundaries and local-time presentation deterministic. `StudyCommands` dispatches
 course, assignment, and quiz commands consistently in both CLI entry paths.
 
+`AgendaService` combines the existing assignment and quiz services over a single
+time window. It keeps event types explicit and marks incomplete coverage when a
+source is unavailable, reports partial results, or omits quiz timing.
+
 `QuizService` and `QuizRepository` keep quizzes separate from assignments.
 `RetrofitQuizRepository` reads quiz metadata without accessing attempt endpoints.
 `QuizTiming` distinguishes an unrestricted schedule from metadata that Moodle did

@@ -7,6 +7,9 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import moodle.domain.entities.Course
+import moodle.domain.entities.Quiz
+import moodle.domain.entities.QuizList
+import moodle.domain.entities.QuizTiming
 import moodle.fixtures.McpFixture
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -29,7 +32,8 @@ class MoodleMcpToolsTest {
                 "download_course_files",
                 "list_assignments",
                 "upcoming_assignments",
-                "list_quizzes"
+                "list_quizzes",
+                "list_agenda"
             ),
             fixture.tools.tools
                 .map { it.name }
@@ -119,6 +123,24 @@ class MoodleMcpToolsTest {
         val quiz = call("list_quizzes")["items"]?.jsonArray?.single()?.jsonObject
         assertEquals("300", quiz?.get("time_limit_seconds").toString())
         assertEquals("null", quiz?.get("closes_at").toString())
+    }
+
+    @Test
+    fun `agenda paginates the combined timeline and preserves partial access`() = runBlocking {
+        val closes = fixture.clock.instant().plusSeconds(3600)
+        fixture.quizzes.result = QuizList(listOf(Quiz(20, 1, "<b>Quiz</b>", QuizTiming(null, closes, null))))
+        val first = call("list_agenda", """{"limit":1}""")
+        assertEquals("1", first["next_offset"].toString())
+        assertEquals("true", first["partial"].toString())
+        val assignment = first["items"]?.jsonArray?.single()?.jsonObject
+        assertEquals("assignment_due", assignment?.get("kind")?.jsonPrimitive?.content)
+
+        val second = call("list_agenda", """{"limit":1,"offset":1}""")
+        val quiz = second["items"]?.jsonArray?.single()?.jsonObject
+        assertEquals("quiz_closes", quiz?.get("kind")?.jsonPrimitive?.content)
+        assertEquals("Quiz", quiz?.get("name")?.jsonPrimitive?.content)
+        assertEquals(closes.toString(), quiz?.get("at")?.jsonPrimitive?.content)
+        assertEquals("null", second["next_offset"].toString())
     }
 
     @Test

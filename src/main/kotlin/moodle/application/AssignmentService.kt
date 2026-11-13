@@ -23,8 +23,10 @@ class AssignmentService(
         if (days <= 0) throw MoodleException.Input("error.input.days")
         val now = clock.instant()
         val end = now.plus(days.toLong(), ChronoUnit.DAYS)
-        return loadAssignments(courseId = null, window = now..end)
+        return getUpcoming(now..end)
     }
+
+    internal fun getUpcoming(window: ClosedRange<Instant>): AssignmentList = loadAssignments(courseId = null, window = window)
 
     private fun loadAssignments(courseId: Long?, window: ClosedRange<Instant>? = null): AssignmentList =
         access.withSession { token, _ ->

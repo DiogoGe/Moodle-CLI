@@ -84,6 +84,13 @@ native resource ownership, and the limitations of OS credential storage.
 - Do not start, answer, finish, or fetch questions from quiz attempts.
 - Leave other activity types accessible through the general course overview.
 
+## Agenda requirements
+
+- Combine assignment deadlines, quiz openings, and quiz closing times in a
+  chronological view with explicit event types.
+- Default to seven elapsed days and accept 1–366 days. Apply personal assignment
+  extensions and report incomplete source access or unavailable quiz timing.
+
 ## Presentation and failure requirements
 
 - Provide German and English messages, with English fallback for other system locales.

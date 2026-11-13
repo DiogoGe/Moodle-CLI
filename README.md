@@ -14,6 +14,7 @@ controls which courses and activities they can access.
 - Download selected course files individually or in batches without overwriting existing files.
 - List assignments, submission status, and upcoming deadlines.
 - List quizzes separately, including available schedule and time-limit information.
+- See assignment deadlines and quiz dates together in the agenda.
 - Use German or English messages and saved logins on macOS and Windows.
 - Query study information from Codex through the optional local MCP plugin.
 

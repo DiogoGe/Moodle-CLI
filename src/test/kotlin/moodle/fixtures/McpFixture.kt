@@ -98,7 +98,8 @@ internal class McpFixture {
         access,
         CourseService(access, repository, files),
         AssignmentService(access, assignments, clock),
-        QuizService(access, quizzes)
+        QuizService(access, quizzes),
+        clock
     )
     val tools = MoodleMcpTools(application, Messages(Locale.ENGLISH))
 

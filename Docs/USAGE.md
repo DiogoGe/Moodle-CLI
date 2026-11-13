@@ -34,6 +34,7 @@ Memory-only sessions must stay in the same process; see [Saved login](GETTING_ST
 | `tasks [--course <course-id>]` | Alias of `assignments`. |
 | `quizzes [--course <course-id>]` | List quizzes and available schedule/time-limit metadata. |
 | `upcoming --days <days>` | List assignments due from now through the requested number of elapsed days. |
+| `agenda [--days <days>]` | Show assignment deadlines, quiz openings, and quiz closing times together. |
 | `exit` | Leave the interactive prompt, retaining a saved login. Only available within the session. |
 
 IDs and file numbers must be positive integers. Day counts must be positive whole
@@ -156,6 +157,22 @@ mean no corresponding restriction.
 `upcoming` covers Assignment due dates, not quiz closing times. Quizzes are read as
 metadata only: listing them does not start, answer, finish, or fetch questions from
 an attempt. Other activity types remain visible through `course <course-id>`.
+
+## Agenda
+
+```text
+agenda
+agenda --days 14
+```
+
+The agenda lists dated events in chronological order and labels each as an
+assignment deadline, quiz opening, or quiz closing. The default window is seven
+elapsed days. Use `--days` to select 1–366 elapsed 24-hour periods, including both
+ends of the window. It uses personal deadline extensions when Moodle returns them.
+Quiz events with missing timing are omitted. If either source is inaccessible or
+reports incomplete data, or quiz timing is unavailable, the agenda marks the
+results as incomplete. If neither source is accessible, the command reports an
+access error.
 
 ## API availability
 

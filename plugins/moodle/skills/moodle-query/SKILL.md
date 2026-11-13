@@ -23,8 +23,10 @@ tokens, app callback links, passwords, or arbitrary Moodle API functions.
   per item, up to 10 at a time. Report saved paths, failures, and skipped items.
 - Follow `next_offset` when more results are needed. List offsets count items;
   text offsets count characters. Reduce `limit` if a response is too large.
-- Keep Assignment due dates separate from quiz closing times. `upcoming_assignments`
-  uses elapsed 24-hour days, includes submitted assignments, and excludes quizzes.
+- Use `list_agenda` for a combined timeline of assignment deadlines, quiz openings,
+  and quiz closing times. It defaults to seven elapsed days. Keep the event types
+  labelled in the response. Use `upcoming_assignments` for assignment deadlines
+  only, including submitted assignments.
   Explain partial results and unknown submission status/timing rather than guessing.
 - Dates are ISO-8601 instants. Convert them to the user's time zone when presenting
   deadlines, and retain enough detail to avoid ambiguity.

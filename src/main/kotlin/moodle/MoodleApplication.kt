@@ -2,6 +2,7 @@ package moodle
 
 import kotlinx.serialization.json.Json
 import moodle.application.AccessService
+import moodle.application.AgendaService
 import moodle.application.AssignmentService
 import moodle.application.CourseService
 import moodle.application.QuizService
@@ -21,8 +22,11 @@ internal class MoodleApplication(
     val access: AccessService,
     val courses: CourseService,
     val assignments: AssignmentService,
-    val quizzes: QuizService
-)
+    val quizzes: QuizService,
+    clock: Clock
+) {
+    val agenda = AgendaService(assignments, quizzes, clock)
+}
 
 internal fun createMoodleApplication(useKeychain: Boolean, config: MoodleConfig = MoodleConfig()): MoodleApplication {
     val site = config.baseUrl
@@ -33,14 +37,16 @@ internal fun createMoodleApplication(useKeychain: Boolean, config: MoodleConfig 
     val api = createMoodleApi(site, json)
     val tokens = if (useKeychain) platformTokenStore() else null
     val access = AccessService(RetrofitMoodleAccess(api, json), site, tokens)
+    val clock = Clock.systemDefaultZone()
     return MoodleApplication(
         access,
         CourseService(access, RetrofitCourseRepository(api, json), LocalCourseFiles(MoodleFileClient(site))),
         AssignmentService(
             access,
             RetrofitAssignmentRepository(api, json, access::getAvailableFunctions),
-            Clock.systemDefaultZone()
+            clock
         ),
-        QuizService(access, RetrofitQuizRepository(api, json, access::getAvailableFunctions))
+        QuizService(access, RetrofitQuizRepository(api, json, access::getAvailableFunctions)),
+        clock
     )
 }
